@@ -1,12 +1,12 @@
 spring:
   application:
-    name: ms-users
+    name: ${SPRING_APPLICATION_NAME:ms-users}
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/hosped_users
-    username: postgres
-    password: 9973155
-    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hosped_users}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:9973155}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
 
   jpa:
     hibernate:
@@ -18,8 +18,15 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 server:
-  port: 8085
+  port: ${SERVER_PORT:8085}
 
 jwt:
-  secret: hosped@Secret#2025!xK9mPqL3nZvB8wR
-  expiration: 28800000
+  secret: ${JWT_SECRET:hosped@Secret#2025!xK9mPqL3nZvB8wR}
+  expiration: ${JWT_EXPIRATION:28800000}
+
+users:
+  seed-admin:
+    enabled: ${USERS_SEED_ADMIN_ENABLED:false}
+    cpf: ${USERS_SEED_ADMIN_CPF:00000000000}
+    password: ${USERS_SEED_ADMIN_PASSWORD:Admin@123}
+    name: ${USERS_SEED_ADMIN_NAME:Administrador Local}

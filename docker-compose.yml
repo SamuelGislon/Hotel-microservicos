@@ -1,0 +1,216 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: hosped-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hosped-network
+
+  reserva-db:
+    image: postgres:16-alpine
+    container_name: hosped-reserva-db
+    environment:
+      POSTGRES_DB: reserva_db
+      POSTGRES_USER: reserva_user
+      POSTGRES_PASSWORD: reserva_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - reserva-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reserva_user -d reserva_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hosped-network
+
+  quarto-db:
+    image: postgres:16-alpine
+    container_name: hosped-quarto-db
+    environment:
+      POSTGRES_DB: hosped_quartos
+      POSTGRES_USER: quartos_user
+      POSTGRES_PASSWORD: quartos_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - quarto-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quartos_user -d hosped_quartos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hosped-network
+
+  users-db:
+    image: postgres:16-alpine
+    container_name: hosped-users-db
+    environment:
+      POSTGRES_DB: hosped_users
+      POSTGRES_USER: users_user
+      POSTGRES_PASSWORD: users_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - users-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U users_user -d hosped_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hosped-network
+
+  pagamento-db:
+    image: postgres:16-alpine
+    container_name: hosped-pagamento-db
+    environment:
+      POSTGRES_DB: hosped_pagamentos
+      POSTGRES_USER: pagamentos_user
+      POSTGRES_PASSWORD: pagamentos_pass
+    ports:
+      - "5436:5432"
+    volumes:
+      - pagamento-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pagamentos_user -d hosped_pagamentos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hosped-network
+
+  hosped-gateway:
+    build:
+      context: ./hosped-gateway
+    container_name: hosped-gateway
+    environment:
+      SERVER_PORT: 8080
+      JWT_SECRET: hosped@Secret#2025!xK9mPqL3nZvB8wR
+      USERS_SERVICE_URL: http://hosped-users:8080
+      QUARTO_SERVICE_URL: http://hosped-quarto:8080
+      RESERVA_SERVICE_URL: http://reserva-service:8080
+      PAGAMENTO_SERVICE_URL: http://hosped-pagamento:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - reserva-service
+      - hosped-quarto
+      - hosped-users
+      - hosped-pagamento
+    networks:
+      - hosped-network
+
+  reserva-service:
+    build:
+      context: ./reserva-service
+    container_name: reserva-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      DB_HOST: reserva-db
+      DB_PORT: 5432
+      DB_NAME: reserva_db
+      DB_USER: reserva_user
+      DB_PASSWORD: reserva_pass
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      APP_INTEGRACAO_QUARTO_STRATEGY: http
+      APP_INTEGRACAO_QUARTO_BASE_URL: http://hosped-quarto:8080
+      APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE: false
+      APP_INTEGRACAO_PAGAMENTO_STRATEGY: http
+      APP_INTEGRACAO_PAGAMENTO_BASE_URL: http://hosped-pagamento:8080
+    ports:
+      - "8081:8080"
+    depends_on:
+      reserva-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      hosped-quarto:
+        condition: service_started
+    networks:
+      - hosped-network
+
+  hosped-quarto:
+    build:
+      context: ./Hosped-quarto
+    container_name: hosped-quarto
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://quarto-db:5432/hosped_quartos
+      SPRING_DATASOURCE_USERNAME: quartos_user
+      SPRING_DATASOURCE_PASSWORD: quartos_pass
+    ports:
+      - "8082:8080"
+    depends_on:
+      quarto-db:
+        condition: service_healthy
+    networks:
+      - hosped-network
+
+  hosped-users:
+    build:
+      context: ./Hosped-users
+    container_name: hosped-users
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://users-db:5432/hosped_users
+      SPRING_DATASOURCE_USERNAME: users_user
+      SPRING_DATASOURCE_PASSWORD: users_pass
+      JWT_SECRET: hosped@Secret#2025!xK9mPqL3nZvB8wR
+      USERS_SEED_ADMIN_ENABLED: true
+      USERS_SEED_ADMIN_CPF: "00000000000"
+      USERS_SEED_ADMIN_PASSWORD: Admin@123
+      USERS_SEED_ADMIN_NAME: Administrador Local
+    ports:
+      - "8083:8080"
+    depends_on:
+      users-db:
+        condition: service_healthy
+    networks:
+      - hosped-network
+
+  hosped-pagamento:
+    build:
+      context: ./hosped-pagamento
+    container_name: hosped-pagamento
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pagamento-db:5432/hosped_pagamentos
+      SPRING_DATASOURCE_USERNAME: pagamentos_user
+      SPRING_DATASOURCE_PASSWORD: pagamentos_pass
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    ports:
+      - "8084:8080"
+    depends_on:
+      pagamento-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hosped-network
+
+networks:
+  hosped-network:
+    driver: bridge
+
+volumes:
+  reserva-db-data:
+  quarto-db-data:
+  users-db-data:
+  pagamento-db-data:

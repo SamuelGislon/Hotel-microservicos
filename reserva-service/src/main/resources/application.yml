@@ -88,10 +88,11 @@ app:
   integracao:
     quarto:
       strategy: ${APP_INTEGRACAO_QUARTO_STRATEGY:http}
-      base-url: ${APP_INTEGRACAO_QUARTO_BASE_URL:http://quarto-service:8084}
+      base-url: ${APP_INTEGRACAO_QUARTO_BASE_URL:http://hosped-quarto:8080}
       permitir-reserva-sem-validacao-externa: ${APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE:false}
     pagamento:
-      base-url: ${APP_INTEGRACAO_PAGAMENTO_BASE_URL:http://reserva-service:8080}
+      strategy: ${APP_INTEGRACAO_PAGAMENTO_STRATEGY:http}
+      base-url: ${APP_INTEGRACAO_PAGAMENTO_BASE_URL:http://hosped-pagamento:8080}
 
 ---
 spring:

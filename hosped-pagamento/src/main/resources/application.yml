@@ -1,14 +1,14 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
 
 spring:
   application:
-    name: ms-pagamentos
+    name: ${SPRING_APPLICATION_NAME:ms-pagamentos}
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/hosped_pagamentos
-    username: pagamentos_user
-    password: pagamentos_pass
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hosped_pagamentos}
+    username: ${SPRING_DATASOURCE_USERNAME:pagamentos_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:pagamentos_pass}
 
   jpa:
     hibernate:
@@ -19,10 +19,10 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
 
   mail:
     host: smtp.gmail.com
@@ -43,7 +43,7 @@ spring:
 
 pagamento:
   expiracao:
-    horas: 8
+    horas: ${PAGAMENTO_EXPIRACAO_HORAS:8}
 
 springdoc:
   swagger-ui:

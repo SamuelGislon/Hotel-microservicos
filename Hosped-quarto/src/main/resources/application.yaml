@@ -1,12 +1,12 @@
 spring:
   application:
-    name: ms-quartos
+    name: ${SPRING_APPLICATION_NAME:ms-quartos}
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/hosped_quartos
-    username: postgres
-    password: 9973155
-    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hosped_quartos}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:9973155}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
 
   jpa:
     hibernate:
@@ -18,4 +18,4 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 server:
-  port: 8084
+  port: ${SERVER_PORT:8084}
