@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+jwt:
+  secret: ${JWT_SECRET:hosped@Secret#2025!xK9mPqL3nZvB8wR}
+  expiration: 28800000

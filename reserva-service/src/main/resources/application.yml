@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: reserva-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:reserva_db}
+    username: ${DB_USER:reserva_user}
+    password: ${DB_PASSWORD:reserva_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+
+app:
+  integracao:
+    quarto:
+      strategy: ${APP_INTEGRACAO_QUARTO_STRATEGY:fake}
+      base-url: ${APP_INTEGRACAO_QUARTO_BASE_URL:http://localhost:8080}
+      permitir-reserva-sem-validacao-externa: ${APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE:true}
+    pagamento:
+      strategy: ${APP_INTEGRACAO_PAGAMENTO_STRATEGY:fake}
+      base-url: ${APP_INTEGRACAO_PAGAMENTO_BASE_URL:http://localhost:8080}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      quartoDisponibilidade:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        permitted-number-of-calls-in-half-open-state: 2
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+      pagamentoService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        permitted-number-of-calls-in-half-open-state: 2
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+  timelimiter:
+    instances:
+      quartoDisponibilidade:
+        timeout-duration: 2s
+      pagamentoService:
+        timeout-duration: 2s
+
+server:
+  port: ${SERVER_PORT:8080}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+app:
+  integracao:
+    quarto:
+      strategy: ${APP_INTEGRACAO_QUARTO_STRATEGY:http}
+      base-url: ${APP_INTEGRACAO_QUARTO_BASE_URL:http://quarto-service:8084}
+      permitir-reserva-sem-validacao-externa: ${APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE:false}
+    pagamento:
+      base-url: ${APP_INTEGRACAO_PAGAMENTO_BASE_URL:http://reserva-service:8080}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: http-demo
+app:
+  integracao:
+    quarto:
+      strategy: http
+    pagamento:
+      strategy: http

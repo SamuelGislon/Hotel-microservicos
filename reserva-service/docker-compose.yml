@@ -1,0 +1,246 @@
+services:
+  reserva-postgres:
+    image: postgres:16-alpine
+    container_name: reserva-postgres
+    environment:
+      POSTGRES_DB: reserva_db
+      POSTGRES_USER: reserva_user
+      POSTGRES_PASSWORD: reserva_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - reserva_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reserva_user -d reserva_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel-network
+
+  quarto-postgres:
+    image: postgres:16-alpine
+    container_name: quarto-postgres
+    environment:
+      POSTGRES_DB: hosped_quartos
+      POSTGRES_USER: quarto_user
+      POSTGRES_PASSWORD: quarto_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - quarto_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quarto_user -d hosped_quartos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel-network
+
+  users-postgres:
+    image: postgres:16-alpine
+    container_name: users-postgres
+    environment:
+      POSTGRES_DB: hosped_users
+      POSTGRES_USER: users_user
+      POSTGRES_PASSWORD: users_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - users_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U users_user -d hosped_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel-network
+
+  pagamento-postgres:
+    image: postgres:16-alpine
+    container_name: pagamento-postgres
+    environment:
+      POSTGRES_DB: hosped_pagamentos
+      POSTGRES_USER: pagamentos_user
+      POSTGRES_PASSWORD: pagamentos_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - pagamento_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pagamentos_user -d hosped_pagamentos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel-network
+
+  reserva-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reserva-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: "8080"
+      DB_HOST: reserva-postgres
+      DB_PORT: "5432"
+      DB_NAME: reserva_db
+      DB_USER: reserva_user
+      DB_PASSWORD: reserva_pass
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      APP_INTEGRACAO_QUARTO_STRATEGY: http
+      APP_INTEGRACAO_QUARTO_BASE_URL: http://quarto-service:8084
+      APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE: "false"
+      APP_INTEGRACAO_PAGAMENTO_STRATEGY: fake
+      APP_INTEGRACAO_PAGAMENTO_BASE_URL: http://pagamento-service:8083
+    ports:
+      - "8081:8080"
+    depends_on:
+      reserva-postgres:
+        condition: service_healthy
+      quarto-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  gateway-service:
+    build:
+      context: ../hosped-gateway
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    environment:
+      SERVER_PORT: "8080"
+      JWT_SECRET: "hosped@Secret#2025!xK9mPqL3nZvB8wR"
+      JWT_EXPIRATION: "28800000"
+      PAGAMENTO_SERVICE_URL: http://pagamento-service:8083
+      RESERVA_SERVICE_URL: http://reserva-service:8080
+      QUARTO_SERVICE_URL: http://quarto-service:8084
+      USERS_SERVICE_URL: http://users-service:8085
+    ports:
+      - "8080:8080"
+    depends_on:
+      pagamento-service:
+        condition: service_started
+      reserva-service:
+        condition: service_started
+      quarto-service:
+        condition: service_started
+      users-service:
+        condition: service_started
+    networks:
+      - hotel-network
+
+  quarto-service:
+    build:
+      context: ../Hosped-quarto
+      dockerfile: Dockerfile
+    container_name: quarto-service
+    environment:
+      DB_HOST: quarto-postgres
+      DB_PORT: "5432"
+      DB_NAME: hosped_quartos
+      DB_USER: quarto_user
+      DB_PASSWORD: quarto_pass
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      SERVER_PORT: "8084"
+    ports:
+      - "8082:8084"
+    depends_on:
+      quarto-postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  users-service:
+    build:
+      context: ../Hosped-users
+      dockerfile: Dockerfile
+    container_name: users-service
+    environment:
+      DB_HOST: users-postgres
+      DB_PORT: "5432"
+      DB_NAME: hosped_users
+      DB_USER: users_user
+      DB_PASSWORD: users_pass
+      SERVER_PORT: "8085"
+      JWT_SECRET: "hosped@Secret#2025!xK9mPqL3nZvB8wR"
+      JWT_EXPIRATION: "28800000"
+    ports:
+      - "8083:8085"
+    depends_on:
+      users-postgres:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  pagamento-service:
+    build:
+      context: ../hosped-pagamento
+      dockerfile: Dockerfile
+    container_name: pagamento-service
+    environment:
+      SERVER_PORT: "8083"
+      DB_HOST: pagamento-postgres
+      DB_PORT: "5432"
+      DB_NAME: hosped_pagamentos
+      DB_USER: pagamentos_user
+      DB_PASSWORD: pagamentos_pass
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      PAGAMENTO_EXPIRACAO_HORAS: "8"
+      PAGAMENTO_EXPIRACAO_VERIFICACAO_MS: "60000"
+      PAGAMENTO_EMAIL_ENABLED: "false"
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: "587"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+    ports:
+      - "8084:8083"
+    depends_on:
+      pagamento-postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+volumes:
+  reserva_postgres_data:
+  quarto_postgres_data:
+  users_postgres_data:
+  pagamento_postgres_data:
+
+networks:
+  hotel-network:
+    name: hotel-network
+    driver: bridge
