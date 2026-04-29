@@ -6,8 +6,8 @@ spring:
     name: api-gateway
 
 jwt:
-  secret: ${JWT_SECRET:hosped@Secret#2025!xK9mPqL3nZvB8wR}
-  expiration: ${JWT_EXPIRATION:28800000}
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER}
 
 services:
   pagamentos-url: ${PAGAMENTO_SERVICE_URL:http://localhost:8083}

@@ -1,0 +1,9 @@
+jwt:
+  secret: hosped@Secret#2025!xK9mPqL3nZvB8wR
+  issuer: hosped-users
+
+services:
+  pagamentos-url: http://localhost:8083
+  reservas-url: http://localhost:8081
+  quartos-url: http://localhost:8084
+  users-url: http://localhost:8085

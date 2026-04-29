@@ -36,7 +36,7 @@ public class UserService {
             throw new AutenticacaoException("CPF ou senha inválidos");
         }
 
-        String token = jwtUtil.gerar(user.getCpf(), user.getNome(), user.getCargo().name());
+        String token = jwtUtil.gerar(user.getId(), user.getCpf(), user.getNome(), user.getCargo().name());
         return new LoginResponse(token);
     }
 

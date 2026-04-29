@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 public class JwtAuthFilter implements GatewayFilter {
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JwtTokenValidator jwtTokenValidator;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange,
@@ -25,7 +25,7 @@ public class JwtAuthFilter implements GatewayFilter {
             return exchange.getResponse().setComplete();
         }
 
-        if (!jwtUtil.isValid(token)) {
+        if (!jwtTokenValidator.isValid(token)) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
@@ -37,12 +37,12 @@ public class JwtAuthFilter implements GatewayFilter {
         return (exchange, chain) -> {
             String token = extrairToken(exchange);
 
-            if (token == null || !jwtUtil.isValid(token)) {
+            if (token == null || !jwtTokenValidator.isValid(token)) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
 
-            String cargoToken = jwtUtil.getCargo(token);
+            String cargoToken = jwtTokenValidator.getCargo(token);
             if (!cargo.equals(cargoToken)) {
                 exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                 return exchange.getResponse().setComplete();

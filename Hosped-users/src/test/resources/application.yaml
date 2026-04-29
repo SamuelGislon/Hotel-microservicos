@@ -15,4 +15,5 @@ server:
 
 jwt:
   secret: hosped@Secret#2025!xK9mPqL3nZvB8wR
+  issuer: hosped-users
   expiration: 28800000

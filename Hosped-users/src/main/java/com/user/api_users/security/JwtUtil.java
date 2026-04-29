@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -14,12 +16,17 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
+    @Value("${jwt.issuer}")
+    private String issuer;
+
     @Value("${jwt.expiration}")
     private long expiration;
 
-    public String gerar(String cpf, String nome, String cargo) {
+    public String gerar(UUID id, String cpf, String nome, String cargo) {
         return Jwts.builder()
+                .issuer(issuer)
                 .subject(cpf)
+                .claim("id", id.toString())
                 .claim("nome", nome)
                 .claim("cargo", cargo)
                 .issuedAt(new Date())
@@ -32,10 +39,11 @@ public class JwtUtil {
         try {
             Jwts.parser()
                     .verifyWith(chaveSecreta())
+                    .requireIssuer(issuer)
                     .build()
                     .parseSignedClaims(token);
             return true;
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
@@ -43,22 +51,44 @@ public class JwtUtil {
     public String getCpf(String token) {
         return Jwts.parser()
                 .verifyWith(chaveSecreta())
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
     }
 
+    public String getUserId(String token) {
+        return Jwts.parser()
+                .verifyWith(chaveSecreta())
+                .requireIssuer(issuer)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("id", String.class);
+    }
+
     public String getCargo(String token) {
         return Jwts.parser()
                 .verifyWith(chaveSecreta())
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("cargo", String.class);
     }
 
+    public String getNome(String token) {
+        return Jwts.parser()
+                .verifyWith(chaveSecreta())
+                .requireIssuer(issuer)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("nome", String.class);
+    }
+
     private SecretKey chaveSecreta() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

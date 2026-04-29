@@ -7,40 +7,34 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 
 @Component
-public class JwtUtil {
+public class JwtTokenValidator {
 
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
-    private long expiration;
+    @Value("${jwt.issuer}")
+    private String issuer;
 
     public boolean isValid(String token) {
         try {
             Jwts.parser()
                     .verifyWith(chaveSecreta())
+                    .requireIssuer(issuer)
                     .build()
                     .parseSignedClaims(token);
             return true;
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
-    }
-
-    public String getCpf(String token) {
-        return Jwts.parser()
-                .verifyWith(chaveSecreta())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
     }
 
     public String getCargo(String token) {
         return Jwts.parser()
                 .verifyWith(chaveSecreta())
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
@@ -48,6 +42,6 @@ public class JwtUtil {
     }
 
     private SecretKey chaveSecreta() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

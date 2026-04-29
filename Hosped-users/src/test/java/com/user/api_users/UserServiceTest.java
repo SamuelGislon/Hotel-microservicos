@@ -4,6 +4,7 @@ import com.user.api_users.DTO.AlterarSenhaRequest;
 import com.user.api_users.DTO.UserResponse;
 import com.user.api_users.DTO.LoginRequest;
 import com.user.api_users.DTO.LoginResponse;
+import com.user.api_users.exception.AutenticacaoException;
 import com.user.api_users.model.Cargos;
 import com.user.api_users.model.Users;
 import com.user.api_users.repository.UserRepository;
@@ -56,12 +57,14 @@ public class UserServiceTest {
         request.setSenha("Admin@123");
 
         when(repository.findByCpf("12345678900")).thenReturn(Optional.of(admin));
-        when(jwtUtil.gerar(any(), any(), any())).thenReturn("token-fake");
+        when(jwtUtil.gerar(admin.getId(), admin.getCpf(), admin.getNome(), admin.getCargo().name()))
+                .thenReturn("token-fake");
 
         LoginResponse resultado = userService.login(request);
 
         assertNotNull(resultado);
         assertEquals("token-fake", resultado.getToken());
+        verify(jwtUtil).gerar(admin.getId(), admin.getCpf(), admin.getNome(), admin.getCargo().name());
     }
 
     @Test
@@ -72,7 +75,7 @@ public class UserServiceTest {
 
         when(repository.findByCpf("00000000000")).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> userService.login(request));
+        assertThrows(AutenticacaoException.class, () -> userService.login(request));
     }
 
     @Test
@@ -83,7 +86,7 @@ public class UserServiceTest {
 
         when(repository.findByCpf("12345678900")).thenReturn(Optional.of(admin));
 
-        assertThrows(RuntimeException.class, () -> userService.login(request));
+        assertThrows(AutenticacaoException.class, () -> userService.login(request));
     }
 
     @Test
