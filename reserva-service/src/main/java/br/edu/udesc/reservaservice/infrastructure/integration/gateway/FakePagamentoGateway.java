@@ -17,4 +17,9 @@ public class FakePagamentoGateway implements PagamentoGateway {
             "Gateway fake em uso: não existe integração real com pagamento-service nesta versão"
         );
     }
+
+    @Override
+    public void confirmarPagamentoReserva(UUID reservaId) {
+        // Gateway fake usado em modo standalone.
+    }
 }

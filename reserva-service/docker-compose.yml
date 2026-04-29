@@ -6,8 +6,6 @@ services:
       POSTGRES_DB: reserva_db
       POSTGRES_USER: reserva_user
       POSTGRES_PASSWORD: reserva_pass
-    ports:
-      - "5432:5432"
     volumes:
       - reserva_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,8 +23,6 @@ services:
       POSTGRES_DB: hosped_quartos
       POSTGRES_USER: quarto_user
       POSTGRES_PASSWORD: quarto_pass
-    ports:
-      - "5433:5432"
     volumes:
       - quarto_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -44,8 +40,6 @@ services:
       POSTGRES_DB: hosped_users
       POSTGRES_USER: users_user
       POSTGRES_PASSWORD: users_pass
-    ports:
-      - "5434:5432"
     volumes:
       - users_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -63,8 +57,6 @@ services:
       POSTGRES_DB: hosped_pagamentos
       POSTGRES_USER: pagamentos_user
       POSTGRES_PASSWORD: pagamentos_pass
-    ports:
-      - "5435:5432"
     volumes:
       - pagamento_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -112,10 +104,8 @@ services:
       APP_INTEGRACAO_QUARTO_STRATEGY: http
       APP_INTEGRACAO_QUARTO_BASE_URL: http://quarto-service:8084
       APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE: "false"
-      APP_INTEGRACAO_PAGAMENTO_STRATEGY: fake
+      APP_INTEGRACAO_PAGAMENTO_STRATEGY: http
       APP_INTEGRACAO_PAGAMENTO_BASE_URL: http://pagamento-service:8083
-    ports:
-      - "8081:8080"
     depends_on:
       reserva-postgres:
         condition: service_healthy
@@ -159,18 +149,14 @@ services:
       dockerfile: Dockerfile
     container_name: quarto-service
     environment:
-      DB_HOST: quarto-postgres
-      DB_PORT: "5432"
-      DB_NAME: hosped_quartos
-      DB_USER: quarto_user
-      DB_PASSWORD: quarto_pass
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: "5672"
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
+      SPRING_DATASOURCE_URL: jdbc:postgresql://quarto-postgres:5432/hosped_quartos
+      SPRING_DATASOURCE_USERNAME: quarto_user
+      SPRING_DATASOURCE_PASSWORD: quarto_pass
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       SERVER_PORT: "8084"
-    ports:
-      - "8082:8084"
     depends_on:
       quarto-postgres:
         condition: service_healthy
@@ -185,16 +171,16 @@ services:
       dockerfile: Dockerfile
     container_name: users-service
     environment:
-      DB_HOST: users-postgres
-      DB_PORT: "5432"
-      DB_NAME: hosped_users
-      DB_USER: users_user
-      DB_PASSWORD: users_pass
+      SPRING_DATASOURCE_URL: jdbc:postgresql://users-postgres:5432/hosped_users
+      SPRING_DATASOURCE_USERNAME: users_user
+      SPRING_DATASOURCE_PASSWORD: users_pass
       SERVER_PORT: "8085"
       JWT_SECRET: "hosped@Secret#2025!xK9mPqL3nZvB8wR"
       JWT_EXPIRATION: "28800000"
-    ports:
-      - "8083:8085"
+      USERS_SEED_ADMIN_ENABLED: "true"
+      USERS_SEED_ADMIN_CPF: "00000000000"
+      USERS_SEED_ADMIN_PASSWORD: Admin@123
+      USERS_SEED_ADMIN_NAME: Administrador Local
     depends_on:
       users-postgres:
         condition: service_healthy
@@ -208,24 +194,21 @@ services:
     container_name: pagamento-service
     environment:
       SERVER_PORT: "8083"
-      DB_HOST: pagamento-postgres
-      DB_PORT: "5432"
-      DB_NAME: hosped_pagamentos
-      DB_USER: pagamentos_user
-      DB_PASSWORD: pagamentos_pass
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: "5672"
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pagamento-postgres:5432/hosped_pagamentos
+      SPRING_DATASOURCE_USERNAME: pagamentos_user
+      SPRING_DATASOURCE_PASSWORD: pagamentos_pass
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       PAGAMENTO_EXPIRACAO_HORAS: "8"
       PAGAMENTO_EXPIRACAO_VERIFICACAO_MS: "60000"
       PAGAMENTO_EMAIL_ENABLED: "false"
+      PAYMENT_CONFIRMATION_BASE_URL: http://localhost:8080
       MAIL_HOST: smtp.gmail.com
       MAIL_PORT: "587"
       MAIL_USERNAME: ""
       MAIL_PASSWORD: ""
-    ports:
-      - "8084:8083"
     depends_on:
       pagamento-postgres:
         condition: service_healthy

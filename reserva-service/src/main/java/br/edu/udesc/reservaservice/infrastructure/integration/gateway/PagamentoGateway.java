@@ -5,4 +5,6 @@ import java.util.UUID;
 public interface PagamentoGateway {
 
     StatusPagamentoIntegracao consultarStatusReserva(UUID reservaId);
+
+    void confirmarPagamentoReserva(UUID reservaId);
 }

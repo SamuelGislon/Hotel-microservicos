@@ -1,8 +1,11 @@
 package com.quartos.api_quartos.Controller;
 
 import com.quartos.api_quartos.Service.QuartoService;
+import com.quartos.api_quartos.dto.CriarQuartoRequest;
+import com.quartos.api_quartos.dto.ItemQuartoRequest;
 import com.quartos.api_quartos.model.ItemQuarto;
 import com.quartos.api_quartos.model.Quarto;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +21,8 @@ public class QuartoController {
     private QuartoService quartoService;
 
     @PostMapping
-    public ResponseEntity<Quarto> cadastrar(@RequestBody Quarto quarto){
+    public ResponseEntity<Quarto> cadastrar(@Valid @RequestBody CriarQuartoRequest request){
+        Quarto quarto = new Quarto(request.numeroQuarto(), request.tipo(), request.capacidade());
         return ResponseEntity.status(HttpStatus.CREATED).body(quartoService.cadastrar(quarto));
     }
     @GetMapping
@@ -39,7 +43,8 @@ public class QuartoController {
         return ResponseEntity.noContent().build();
     }
     @PostMapping("/{id}/itens")
-    public ResponseEntity<Quarto> adicionarItem(@PathVariable Long id, @RequestBody ItemQuarto item) {
+    public ResponseEntity<Quarto> adicionarItem(@PathVariable Long id, @Valid @RequestBody ItemQuartoRequest request) {
+        ItemQuarto item = new ItemQuarto(request.nomeItem(), request.quantidade());
         return ResponseEntity.status(HttpStatus.CREATED).body(quartoService.adicionarItem(id, item));
     }
     @DeleteMapping("/{id}/itens/{itemId}")

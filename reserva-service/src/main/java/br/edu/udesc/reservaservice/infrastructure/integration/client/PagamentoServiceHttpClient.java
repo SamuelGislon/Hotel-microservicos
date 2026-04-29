@@ -17,9 +17,18 @@ public class PagamentoServiceHttpClient {
     public StatusPagamentoIntegracao consultarStatus(UUID reservaId) {
         return webClient.get()
             .uri(appProperties.getIntegracao().getPagamento().getBaseUrl()
-                + "/api/v1/tecnico/simulacoes/pagamento-service/reservas/" + reservaId + "/status")
+                + "/pagamentos/reserva/" + reservaId + "/status-integracao")
             .retrieve()
             .bodyToMono(StatusPagamentoIntegracao.class)
+            .block();
+    }
+
+    public void confirmarPagamentoReserva(UUID reservaId) {
+        webClient.post()
+            .uri(appProperties.getIntegracao().getPagamento().getBaseUrl()
+                + "/pagamentos/reserva/" + reservaId + "/confirmar")
+            .retrieve()
+            .bodyToMono(Void.class)
             .block();
     }
 }

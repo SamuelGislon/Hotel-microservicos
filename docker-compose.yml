@@ -20,8 +20,6 @@ services:
       POSTGRES_DB: reserva_db
       POSTGRES_USER: reserva_user
       POSTGRES_PASSWORD: reserva_pass
-    ports:
-      - "5433:5432"
     volumes:
       - reserva-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -39,8 +37,6 @@ services:
       POSTGRES_DB: hosped_quartos
       POSTGRES_USER: quartos_user
       POSTGRES_PASSWORD: quartos_pass
-    ports:
-      - "5434:5432"
     volumes:
       - quarto-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -58,8 +54,6 @@ services:
       POSTGRES_DB: hosped_users
       POSTGRES_USER: users_user
       POSTGRES_PASSWORD: users_pass
-    ports:
-      - "5435:5432"
     volumes:
       - users-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -77,8 +71,6 @@ services:
       POSTGRES_DB: hosped_pagamentos
       POSTGRES_USER: pagamentos_user
       POSTGRES_PASSWORD: pagamentos_pass
-    ports:
-      - "5436:5432"
     volumes:
       - pagamento-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -131,8 +123,6 @@ services:
       APP_INTEGRACAO_QUARTO_PERMITIR_STANDALONE: false
       APP_INTEGRACAO_PAGAMENTO_STRATEGY: http
       APP_INTEGRACAO_PAGAMENTO_BASE_URL: http://hosped-pagamento:8080
-    ports:
-      - "8081:8080"
     depends_on:
       reserva-db:
         condition: service_healthy
@@ -156,8 +146,6 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
-    ports:
-      - "8082:8080"
     depends_on:
       quarto-db:
         condition: service_healthy
@@ -180,8 +168,6 @@ services:
       USERS_SEED_ADMIN_CPF: "00000000000"
       USERS_SEED_ADMIN_PASSWORD: Admin@123
       USERS_SEED_ADMIN_NAME: Administrador Local
-    ports:
-      - "8083:8080"
     depends_on:
       users-db:
         condition: service_healthy
@@ -201,8 +187,12 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
-    ports:
-      - "8084:8080"
+      PAYMENT_CONFIRMATION_BASE_URL: http://localhost:8080
+      PAGAMENTO_EMAIL_ENABLED: ${PAGAMENTO_EMAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
     depends_on:
       pagamento-db:
         condition: service_healthy

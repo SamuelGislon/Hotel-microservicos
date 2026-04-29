@@ -3,6 +3,7 @@ package br.edu.udesc.reservaservice.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -28,6 +29,7 @@ import br.edu.udesc.reservaservice.domain.repository.ReservaComentarioRepository
 import br.edu.udesc.reservaservice.domain.repository.ReservaRepository;
 import br.edu.udesc.reservaservice.domain.repository.ReservaStatusHistoricoRepository;
 import br.edu.udesc.reservaservice.infrastructure.integration.gateway.DisponibilidadeQuarto;
+import br.edu.udesc.reservaservice.infrastructure.integration.gateway.PagamentoGateway;
 import br.edu.udesc.reservaservice.infrastructure.integration.gateway.QuartoDisponibilidadeGateway;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -58,6 +60,9 @@ class ReservaServiceTest {
     private QuartoDisponibilidadeGateway quartoDisponibilidadeGateway;
 
     @Mock
+    private PagamentoGateway pagamentoGateway;
+
+    @Mock
     private ReservaDomainEventPublisher reservaDomainEventPublisher;
 
     @Mock
@@ -73,6 +78,7 @@ class ReservaServiceTest {
             reservaComentarioRepository,
             reservaStatusHistoricoRepository,
             quartoDisponibilidadeGateway,
+            pagamentoGateway,
             reservaDomainEventPublisher,
             pagamentoReservaCriadaEventPublisher,
             new ReservaMapper()
@@ -83,13 +89,11 @@ class ReservaServiceTest {
     void deveImpedirCriacaoDeReservaComDatasInvalidas() {
         UUID hospedeId = UUID.randomUUID();
         UUID quartoId = UUID.randomUUID();
-        Hospede hospede = new Hospede("João", "12345678909", "joao@email.com", "48999998888");
 
-        when(hospedeRepository.findById(hospedeId)).thenReturn(Optional.of(hospede));
         assertThatThrownBy(() -> reservaService.criar(new CriarReservaCommand(
             hospedeId,
             quartoId,
-            null,
+            10L,
             "101",
             LocalDate.now().plusDays(2),
             LocalDate.now().plusDays(1),
@@ -149,16 +153,17 @@ class ReservaServiceTest {
     @Test
     void devePublicarEventoAoCriarReserva() {
         UUID hospedeId = UUID.randomUUID();
-        UUID quartoId = UUID.randomUUID();
         Hospede hospede = new Hospede("João", "12345678909", "joao@email.com", "48999998888");
 
         when(hospedeRepository.findById(hospedeId)).thenReturn(Optional.of(hospede));
+        when(quartoDisponibilidadeGateway.verificarDisponibilidadePorServico(eq(10L), any(), any()))
+            .thenReturn(new DisponibilidadeQuarto(10L, "101", true, false, "ok"));
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ReservaDto reservaCriada = reservaService.criar(new CriarReservaCommand(
             hospedeId,
-            quartoId,
             null,
+            10L,
             "101",
             LocalDate.now().plusDays(1),
             LocalDate.now().plusDays(2),
@@ -167,10 +172,8 @@ class ReservaServiceTest {
             null
         ));
 
-        assertThat(reservaCriada.quartoId()).isEqualTo(quartoId);
-        assertThat(reservaCriada.quartoServicoId()).isNull();
+        assertThat(reservaCriada.quartoServicoId()).isEqualTo(10L);
         verify(reservaDomainEventPublisher).publicar(any());
-        verify(quartoDisponibilidadeGateway, never()).verificarDisponibilidadePorServico(any(), any(), any());
         verify(pagamentoReservaCriadaEventPublisher, never()).publicar(any());
         verify(reservaStatusHistoricoRepository).save(any());
     }
@@ -228,16 +231,17 @@ class ReservaServiceTest {
     @Test
     void devePublicarEventoDePagamentoAoCriarReservaAntecipada() {
         UUID hospedeId = UUID.randomUUID();
-        UUID quartoId = UUID.randomUUID();
         Hospede hospede = new Hospede("João", "12345678909", "joao@email.com", "48999998888");
 
         when(hospedeRepository.findById(hospedeId)).thenReturn(Optional.of(hospede));
+        when(quartoDisponibilidadeGateway.verificarDisponibilidadePorServico(eq(10L), any(), any()))
+            .thenReturn(new DisponibilidadeQuarto(10L, "101", true, false, "ok"));
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         reservaService.criar(new CriarReservaCommand(
             hospedeId,
-            quartoId,
             null,
+            10L,
             "101",
             LocalDate.now().plusDays(1),
             LocalDate.now().plusDays(2),
@@ -285,7 +289,7 @@ class ReservaServiceTest {
     }
 
     @Test
-    void deveEnviarCheckOutParaServicoDeQuartoQuandoHouverQuartoServicoId() {
+    void devePublicarEventoDeCheckOutComQuartoServicoId() {
         Reserva reserva = criarReserva(PagamentoModo.PAGO_NO_HOTEL, 10L);
 
         when(reservaRepository.findById(reserva.getId())).thenReturn(Optional.of(reserva));
@@ -294,11 +298,15 @@ class ReservaServiceTest {
         reservaService.realizarCheckIn(reserva.getId());
         reservaService.realizarCheckOut(reserva.getId());
 
-        verify(quartoDisponibilidadeGateway).registrarCheckOut(10L);
+        verify(reservaDomainEventPublisher).publicar(argThat(event ->
+            "CHECKOUT_REALIZADO".equals(event.eventType())
+                && Long.valueOf(10L).equals(event.quartoServicoId())
+        ));
+        verify(quartoDisponibilidadeGateway, never()).registrarCheckOut(10L);
     }
 
     private Reserva criarReserva(PagamentoModo pagamentoModo) {
-        return criarReserva(pagamentoModo, null);
+        return criarReserva(pagamentoModo, 10L);
     }
 
     private Reserva criarReserva(PagamentoModo pagamentoModo, Long quartoServicoId) {

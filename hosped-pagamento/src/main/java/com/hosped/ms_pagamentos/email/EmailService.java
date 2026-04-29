@@ -2,6 +2,9 @@ package com.hosped.ms_pagamentos.email;
 
 import com.hosped.ms_pagamentos.model.Pagamento;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -11,11 +14,22 @@ import jakarta.mail.internet.MimeMessage;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${pagamento.email.enabled:false}")
+    private boolean emailEnabled;
+
+    @Value("${pagamento.confirmation-base-url:http://localhost:8080}")
+    private String confirmationBaseUrl;
+
     public void enviarEmailPagamentoPendente(Pagamento pagamento) {
+        if (!emailEnabled) {
+            log.info("Envio de e-mail desabilitado. Pagamento pendente id={}, reservaId={}", pagamento.getId(), pagamento.getReservaId());
+            return;
+        }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -23,7 +37,7 @@ public class EmailService {
             helper.setTo(pagamento.getEmailHospede());
             helper.setSubject("Confirme seu pagamento - HOSPED");
 
-            String linkPagamento = "http://localhost:8083/pagamentos/pagar/" + pagamento.getId();
+            String linkPagamento = confirmationBaseUrl.replaceAll("/$", "") + "/pagamentos/pagar/" + pagamento.getId();
 
             String html = """
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -64,12 +78,16 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             throw new RuntimeException("Erro ao enviar email de pagamento pendente", e);
         }
     }
 
     public void enviarEmailPagamentoAprovado(Pagamento pagamento) {
+        if (!emailEnabled) {
+            log.info("Envio de e-mail desabilitado. Pagamento aprovado id={}, reservaId={}", pagamento.getId(), pagamento.getReservaId());
+            return;
+        }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -95,12 +113,16 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             throw new RuntimeException("Erro ao enviar email de pagamento aprovado", e);
         }
     }
 
     public void enviarEmailPagamentoExpirado(Pagamento pagamento) {
+        if (!emailEnabled) {
+            log.info("Envio de e-mail desabilitado. Pagamento expirado id={}, reservaId={}", pagamento.getId(), pagamento.getReservaId());
+            return;
+        }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -123,7 +145,7 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             throw new RuntimeException("Erro ao enviar email de pagamento expirado", e);
         }
     }

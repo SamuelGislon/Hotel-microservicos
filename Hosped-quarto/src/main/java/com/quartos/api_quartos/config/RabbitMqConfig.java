@@ -18,6 +18,9 @@ public class RabbitMqConfig {
     public static final String EXCHANGE_RESERVA_EVENTOS = "reserva.eventos.exchange";
     public static final String FILA_RESERVA_CHECKIN = "quarto.reserva.checkin.queue";
     public static final String ROUTING_KEY_RESERVA_CHECKIN = "reserva.checkin.realizado";
+    public static final String FILA_RESERVA_CHECKOUT = "quarto.reserva.checkout.queue";
+    public static final String ROUTING_KEY_RESERVA_CHECKOUT = "reserva.checkout.realizado";
+
 
     @Bean
     public TopicExchange reservaEventosExchange() {
@@ -30,10 +33,22 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    public Queue filaReservaCheckOut() {
+        return new Queue(FILA_RESERVA_CHECKOUT, true);
+    }
+
+    @Bean
     public Binding bindingReservaCheckIn() {
         return BindingBuilder.bind(filaReservaCheckIn())
                 .to(reservaEventosExchange())
                 .with(ROUTING_KEY_RESERVA_CHECKIN);
+    }
+
+    @Bean
+    public Binding bindingReservaCheckOut() {
+        return BindingBuilder.bind(filaReservaCheckOut())
+                .to(reservaEventosExchange())
+                .with(ROUTING_KEY_RESERVA_CHECKOUT);
     }
 
     @Bean

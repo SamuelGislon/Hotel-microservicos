@@ -18,27 +18,49 @@ public class JwtAuthFilter implements GatewayFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange,
                              GatewayFilterChain chain) {
+        String token = extrairToken(exchange);
 
-        String header = exchange.getRequest()
-                .getHeaders()
-                .getFirst(HttpHeaders.AUTHORIZATION);
-
-        // sem header Authorization → bloqueia com 401
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (token == null) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
 
-        // extrai o token removendo o "Bearer " do início
-        String token = header.substring(7);
-
-        // token inválido ou expirado → bloqueia com 401
         if (!jwtUtil.isValid(token)) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
 
-        // token válido → deixa a requisição passar
         return chain.filter(exchange);
+    }
+
+    public GatewayFilter exigirCargo(String cargo) {
+        return (exchange, chain) -> {
+            String token = extrairToken(exchange);
+
+            if (token == null || !jwtUtil.isValid(token)) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            String cargoToken = jwtUtil.getCargo(token);
+            if (!cargo.equals(cargoToken)) {
+                exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+                return exchange.getResponse().setComplete();
+            }
+
+            return chain.filter(exchange);
+        };
+    }
+
+    private String extrairToken(ServerWebExchange exchange) {
+        String header = exchange.getRequest()
+                .getHeaders()
+                .getFirst(HttpHeaders.AUTHORIZATION);
+
+        if (header == null || !header.startsWith("Bearer ")) {
+            return null;
+        }
+
+        return header.substring(7);
     }
 }

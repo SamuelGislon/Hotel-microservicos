@@ -10,6 +10,7 @@ import br.edu.udesc.reservaservice.domain.event.PagamentoReservaCriadaEvent;
 import br.edu.udesc.reservaservice.domain.event.PagamentoReservaCriadaEventPublisher;
 import br.edu.udesc.reservaservice.domain.event.ReservaDomainEvent;
 import br.edu.udesc.reservaservice.domain.event.ReservaDomainEventPublisher;
+import br.edu.udesc.reservaservice.domain.exception.DataReservaInvalidaException;
 import br.edu.udesc.reservaservice.domain.exception.HospedeNaoEncontradoException;
 import br.edu.udesc.reservaservice.domain.exception.IntegracaoExternaException;
 import br.edu.udesc.reservaservice.domain.exception.RegraDeNegocioException;
@@ -23,6 +24,7 @@ import br.edu.udesc.reservaservice.domain.repository.ReservaComentarioRepository
 import br.edu.udesc.reservaservice.domain.repository.ReservaRepository;
 import br.edu.udesc.reservaservice.domain.repository.ReservaStatusHistoricoRepository;
 import br.edu.udesc.reservaservice.infrastructure.integration.gateway.DisponibilidadeQuarto;
+import br.edu.udesc.reservaservice.infrastructure.integration.gateway.PagamentoGateway;
 import br.edu.udesc.reservaservice.infrastructure.integration.gateway.QuartoDisponibilidadeGateway;
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,6 +44,7 @@ public class ReservaService {
     private final ReservaComentarioRepository reservaComentarioRepository;
     private final ReservaStatusHistoricoRepository reservaStatusHistoricoRepository;
     private final QuartoDisponibilidadeGateway quartoDisponibilidadeGateway;
+    private final PagamentoGateway pagamentoGateway;
     private final ReservaDomainEventPublisher reservaDomainEventPublisher;
     private final PagamentoReservaCriadaEventPublisher pagamentoReservaCriadaEventPublisher;
     private final ReservaMapper reservaMapper;
@@ -54,6 +57,7 @@ public class ReservaService {
             .orElseThrow(() -> new HospedeNaoEncontradoException(command.hospedeId()));
 
         DisponibilidadeQuarto disponibilidade = validarQuarto(command);
+        validarConflitoPeriodo(command);
         String quartoNumero = resolverQuartoNumero(command, disponibilidade);
 
         Reserva reserva = new Reserva(
@@ -125,12 +129,21 @@ public class ReservaService {
         Reserva reservaAtualizada = reservaRepository.save(reserva);
         registrarHistorico(reservaAtualizada, anterior, reservaAtualizada.getReservaStatus(), "Check-out realizado");
         reservaDomainEventPublisher.publicar(ReservaDomainEvent.checkOutRealizado(reservaAtualizada));
-        registrarCheckOutQuarto(reservaAtualizada);
+        log.info(
+            "Check-out realizado. reservaId={}, quartoServicoId={}. Evento enviado para integração com Hosped-quarto.",
+            reservaAtualizada.getId(),
+            reservaAtualizada.getQuartoServicoId()
+        );
         return reservaMapper.toDto(reservaAtualizada);
     }
 
     @Transactional
     public ReservaDto confirmarPagamento(UUID reservaId) {
+        pagamentoGateway.confirmarPagamentoReserva(reservaId);
+        return confirmarPagamentoLocal(reservaId);
+    }
+
+    private ReservaDto confirmarPagamentoLocal(UUID reservaId) {
         Reserva reserva = buscarReserva(reservaId);
         ReservaStatus anterior = reserva.getReservaStatus();
         reserva.confirmarPagamentoAntecipado();
@@ -160,7 +173,7 @@ public class ReservaService {
             || reserva.getReservaStatus() == ReservaStatus.CANCELADA) {
             return;
         }
-        confirmarPagamento(reservaId);
+        confirmarPagamentoLocal(reservaId);
     }
 
     @Transactional
@@ -201,8 +214,12 @@ public class ReservaService {
     }
 
     private void validarCriacao(CriarReservaCommand command) {
-        if (command.quartoId() == null && command.quartoServicoId() == null) {
-            throw new RegraDeNegocioException("Informe quartoId ou quartoServicoId para criar a reserva");
+        if (command.quartoServicoId() == null) {
+            throw new RegraDeNegocioException("Informe quartoServicoId para criar a reserva integrada ao serviço de quartos");
+        }
+        if (command.checkInData() == null || command.checkOutData() == null
+            || !command.checkOutData().isAfter(command.checkInData())) {
+            throw new DataReservaInvalidaException();
         }
         if (command.valorDiaria() != null && command.valorDiaria().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RegraDeNegocioException("O valor da diária deve ser maior que zero");
@@ -214,6 +231,18 @@ public class ReservaService {
             if (command.metodoPagamento() == null) {
                 throw new RegraDeNegocioException("O método de pagamento é obrigatório para pagamento antecipado");
             }
+        }
+    }
+
+    private void validarConflitoPeriodo(CriarReservaCommand command) {
+        boolean conflito = reservaRepository.existsConflitoPeriodo(
+            command.quartoServicoId(),
+            command.checkInData(),
+            command.checkOutData(),
+            List.of(ReservaStatus.PENDENTE, ReservaStatus.PAGA, ReservaStatus.ATIVA)
+        );
+        if (conflito) {
+            throw new RegraDeNegocioException("Já existe reserva ativa, paga ou pendente para o quarto no período informado");
         }
     }
 
@@ -242,18 +271,6 @@ public class ReservaService {
             return command.quartoNumero();
         }
         return disponibilidade != null ? disponibilidade.quartoNumero() : null;
-    }
-
-    private void registrarCheckOutQuarto(Reserva reserva) {
-        if (reserva.getQuartoServicoId() == null) {
-            return;
-        }
-        try {
-            quartoDisponibilidadeGateway.registrarCheckOut(reserva.getQuartoServicoId());
-            log.info("Check-out enviado ao serviço de quartos. reservaId={}, quartoServicoId={}", reserva.getId(), reserva.getQuartoServicoId());
-        } catch (Exception exception) {
-            log.warn("Falha ao enviar check-out ao serviço de quartos. reservaId={}, quartoServicoId={}", reserva.getId(), reserva.getQuartoServicoId(), exception);
-        }
     }
 
     private void registrarHistorico(Reserva reserva, ReservaStatus statusAnterior, ReservaStatus statusNovo, String motivo) {

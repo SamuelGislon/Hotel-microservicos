@@ -1,6 +1,7 @@
 package com.user.api_users;
 
 import com.user.api_users.DTO.AlterarSenhaRequest;
+import com.user.api_users.DTO.UserResponse;
 import com.user.api_users.DTO.LoginRequest;
 import com.user.api_users.DTO.LoginResponse;
 import com.user.api_users.model.Cargos;
@@ -122,10 +123,11 @@ public class UserServiceTest {
     void listarTodos() {
         when(repository.findAll()).thenReturn(List.of(admin));
 
-        List<Users> resultado = userService.listarTodos();
+        List<UserResponse> resultado = userService.listarTodos();
 
         assertNotNull(resultado);
         assertEquals(1, resultado.size());
+        assertEquals("12345678900", resultado.get(0).cpf());
     }
 
     @Test

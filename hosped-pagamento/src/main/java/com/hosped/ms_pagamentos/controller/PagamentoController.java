@@ -1,6 +1,7 @@
 package com.hosped.ms_pagamentos.controller;
 
 import com.hosped.ms_pagamentos.dto.PagamentoResponseDTO;
+import com.hosped.ms_pagamentos.dto.StatusPagamentoIntegracaoDTO;
 import com.hosped.ms_pagamentos.model.StatusPagamento;
 import com.hosped.ms_pagamentos.service.PagamentoService;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +27,20 @@ public class PagamentoController {
         return ResponseEntity.ok(pagamentoService.buscarPorReservaId(reservaId));
     }
 
+    @GetMapping("/reserva/{reservaId}/status-integracao")
+    public ResponseEntity<StatusPagamentoIntegracaoDTO> consultarStatusIntegracao(@PathVariable String reservaId) {
+        return ResponseEntity.ok(pagamentoService.consultarStatusIntegracao(reservaId));
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> atualizarStatus(@PathVariable String id, @RequestParam StatusPagamento status) {
         pagamentoService.atualizarStatus(id, status);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reserva/{reservaId}/confirmar")
+    public ResponseEntity<Void> confirmarPagamentoPorReserva(@PathVariable String reservaId) {
+        pagamentoService.confirmarPagamentoPorReserva(reservaId);
         return ResponseEntity.noContent().build();
     }
 

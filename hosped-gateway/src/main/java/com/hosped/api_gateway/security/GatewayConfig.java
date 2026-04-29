@@ -29,6 +29,10 @@ public class GatewayConfig {
     public RouteLocator rotas(RouteLocatorBuilder builder) {
         return builder.routes()
 
+                .route("hosped-pagamento-confirmacao-publica", r -> r
+                        .path("/pagamentos/pagar/**")
+                        .uri(pagamentosUrl))
+
                 .route("hosped-pagamento", r -> r
                         .path("/pagamentos/**")
                         .filters(f -> f.filter(jwtAuthFilter))
@@ -58,9 +62,14 @@ public class GatewayConfig {
                         .path("/auth/**")
                         .uri(usersUrl))
 
+                .route("hosped-users-alterar-senha", r -> r
+                        .path("/users/*/senha")
+                        .filters(f -> f.filter(jwtAuthFilter))
+                        .uri(usersUrl))
+
                 .route("hosped-users", r -> r
                         .path("/users/**")
-                        .filters(f -> f.filter(jwtAuthFilter))
+                        .filters(f -> f.filter(jwtAuthFilter.exigirCargo("ADMINISTRADOR")))
                         .uri(usersUrl))
 
                 .build();

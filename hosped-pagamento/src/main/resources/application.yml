@@ -23,12 +23,15 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: hosped.hotel@gmail.com
-    password: tcumibvrdqklywje
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -39,11 +42,15 @@ spring:
           ssl:
             trust: smtp.gmail.com
           auth-login-disable: true
-        debug: true
+        debug: ${MAIL_DEBUG:false}
 
 pagamento:
   expiracao:
     horas: ${PAGAMENTO_EXPIRACAO_HORAS:8}
+    verificacao-ms: ${PAGAMENTO_EXPIRACAO_VERIFICACAO_MS:60000}
+  email:
+    enabled: ${PAGAMENTO_EMAIL_ENABLED:false}
+  confirmation-base-url: ${PAYMENT_CONFIRMATION_BASE_URL:http://localhost:8080}
 
 springdoc:
   swagger-ui:

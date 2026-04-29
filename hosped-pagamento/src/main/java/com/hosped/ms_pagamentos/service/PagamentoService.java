@@ -4,6 +4,7 @@ import com.hosped.ms_pagamentos.config.RabbitMQConfig;
 import com.hosped.ms_pagamentos.dto.PagamentoEventoRetornoDTO;
 import com.hosped.ms_pagamentos.dto.PagamentoResponseDTO;
 import com.hosped.ms_pagamentos.dto.ReservaEventoDTO;
+import com.hosped.ms_pagamentos.dto.StatusPagamentoIntegracaoDTO;
 import com.hosped.ms_pagamentos.email.EmailService;
 import com.hosped.ms_pagamentos.model.Pagamento;
 import com.hosped.ms_pagamentos.model.StatusPagamento;
@@ -13,6 +14,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -31,6 +33,7 @@ public class PagamentoService {
     @Value("${pagamento.expiracao.horas}")
     private int horasExpiracao;
 
+    @Transactional
     public Pagamento processarReserva(ReservaEventoDTO evento) {
         long dias = ChronoUnit.DAYS.between(evento.getCheckIn(), evento.getCheckOut());
         BigDecimal valor = evento.getValorDiaria().multiply(BigDecimal.valueOf(dias));
@@ -50,32 +53,68 @@ public class PagamentoService {
         return salvo;
     }
 
+    @Transactional
     public void confirmarPagamento(String id) {
         Pagamento pagamento = pagamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pagamento não encontrado: " + id));
 
+        confirmarPagamentoPendente(pagamento);
+    }
+
+    @Transactional
+    public void confirmarPagamentoPorReserva(String reservaId) {
+        List<Pagamento> pendentes = pagamentoRepository.findByReservaIdAndStatus(reservaId, StatusPagamento.PENDENTE);
+        if (!pendentes.isEmpty()) {
+            confirmarPagamentoPendente(pendentes.get(0));
+            return;
+        }
+
+        List<Pagamento> pagamentos = pagamentoRepository.findByReservaId(reservaId);
+        if (pagamentos.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pagamento não encontrado para a reserva: " + reservaId);
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Pagamento não pode ser confirmado — status atual: " + pagamentos.get(0).getStatus()
+        );
+    }
+
+    @Transactional
+    public void atualizarStatus(String pagamentoId, StatusPagamento novoStatus) {
+        Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pagamento não encontrado: " + pagamentoId));
+
+        aplicarStatus(pagamento, novoStatus);
+    }
+
+    @Transactional
+    public int expirarPagamentosVencidos() {
+        List<Pagamento> vencidos = pagamentoRepository.findByStatusAndDataExpiracaoBefore(
+                StatusPagamento.PENDENTE,
+                LocalDateTime.now()
+        );
+
+        vencidos.forEach(pagamento -> aplicarStatus(pagamento, StatusPagamento.EXPIRADO));
+        return vencidos.size();
+    }
+
+    private void confirmarPagamentoPendente(Pagamento pagamento) {
         if (pagamento.getStatus() != StatusPagamento.PENDENTE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Pagamento não pode ser confirmado — status atual: " + pagamento.getStatus());
         }
 
         if (LocalDateTime.now().isAfter(pagamento.getDataExpiracao())) {
+            aplicarStatus(pagamento, StatusPagamento.EXPIRADO);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Pagamento expirado — não é possível confirmar");
         }
 
-        pagamento.setStatus(StatusPagamento.APROVADO);
-        pagamento.setDataAtualizacao(LocalDateTime.now());
-        pagamentoRepository.save(pagamento);
-
-        publicarRetorno(pagamento);
-        emailService.enviarEmailPagamentoAprovado(pagamento);
+        aplicarStatus(pagamento, StatusPagamento.APROVADO);
     }
 
-    public void atualizarStatus(String pagamentoId, StatusPagamento novoStatus) {
-        Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pagamento não encontrado: " + pagamentoId));
-
+    private void aplicarStatus(Pagamento pagamento, StatusPagamento novoStatus) {
         pagamento.setStatus(novoStatus);
         pagamento.setDataAtualizacao(LocalDateTime.now());
         pagamentoRepository.save(pagamento);
@@ -113,6 +152,26 @@ public class PagamentoService {
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    public StatusPagamentoIntegracaoDTO consultarStatusIntegracao(String reservaId) {
+        List<Pagamento> pagamentos = pagamentoRepository.findByReservaId(reservaId);
+        if (pagamentos.isEmpty()) {
+            return new StatusPagamentoIntegracaoDTO(
+                    reservaId,
+                    "SEM_PAGAMENTO",
+                    false,
+                    "Nenhum pagamento encontrado para a reserva"
+            );
+        }
+
+        Pagamento pagamento = pagamentos.get(0);
+        return new StatusPagamentoIntegracaoDTO(
+                reservaId,
+                pagamento.getStatus().name(),
+                false,
+                "Status de pagamento consultado com sucesso"
+        );
     }
 
     private PagamentoResponseDTO toResponseDTO(Pagamento pagamento) {

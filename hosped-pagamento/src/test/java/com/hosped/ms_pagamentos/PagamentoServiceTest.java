@@ -273,4 +273,32 @@ class PagamentoServiceTest {
 
         assertTrue(lista.isEmpty());
     }
+
+    @Test
+    void confirmarPagamentoPorReserva_confirmaPagamentoPendente() {
+        Pagamento pagamento = criarPagamentoPendente();
+        when(pagamentoRepository.findByReservaIdAndStatus("reserva-001", StatusPagamento.PENDENTE))
+                .thenReturn(List.of(pagamento));
+        when(pagamentoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        pagamentoService.confirmarPagamentoPorReserva("reserva-001");
+
+        assertEquals(StatusPagamento.APROVADO, pagamento.getStatus());
+        verify(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
+    }
+
+    @Test
+    void expirarPagamentosVencidos_expiraPendentes() {
+        Pagamento pagamento = criarPagamentoPendente();
+        pagamento.setDataExpiracao(LocalDateTime.now().minusMinutes(1));
+        when(pagamentoRepository.findByStatusAndDataExpiracaoBefore(eq(StatusPagamento.PENDENTE), any()))
+                .thenReturn(List.of(pagamento));
+        when(pagamentoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        int expirados = pagamentoService.expirarPagamentosVencidos();
+
+        assertEquals(1, expirados);
+        assertEquals(StatusPagamento.EXPIRADO, pagamento.getStatus());
+        verify(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
+    }
 }

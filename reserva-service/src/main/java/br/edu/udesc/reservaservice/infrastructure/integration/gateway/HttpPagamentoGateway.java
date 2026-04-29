@@ -2,6 +2,7 @@ package br.edu.udesc.reservaservice.infrastructure.integration.gateway;
 
 import br.edu.udesc.reservaservice.infrastructure.integration.client.PagamentoServiceHttpClient;
 import br.edu.udesc.reservaservice.infrastructure.integration.fallback.PagamentoGatewayFallback;
+import br.edu.udesc.reservaservice.domain.exception.IntegracaoExternaException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
@@ -55,6 +56,29 @@ public class HttpPagamentoGateway implements PagamentoGateway {
             return callable.call();
         } catch (Exception exception) {
             return fallback.aplicar(reservaId, exception);
+        }
+    }
+
+    @Override
+    public void confirmarPagamentoReserva(UUID reservaId) {
+        Callable<Void> callable = CircuitBreaker.decorateCallable(
+            circuitBreaker,
+            TimeLimiter.decorateFutureSupplier(
+                timeLimiter,
+                () -> CompletableFuture.supplyAsync(
+                    () -> {
+                        pagamentoServiceHttpClient.confirmarPagamentoReserva(reservaId);
+                        return null;
+                    },
+                    integracaoExecutor
+                )
+            )
+        );
+
+        try {
+            callable.call();
+        } catch (Exception exception) {
+            throw new IntegracaoExternaException("Falha ao confirmar pagamento no serviço de pagamentos");
         }
     }
 }

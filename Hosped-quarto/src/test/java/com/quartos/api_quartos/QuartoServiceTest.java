@@ -93,12 +93,41 @@ public class QuartoServiceTest {
 
     @Test
     void checkoutAguardandoLimpeza() {
+        quarto.setStatus(StatusQuarto.OCUPADO);
         when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
         when(quartoRepository.save(quarto)).thenReturn(quarto);
 
         Quarto resultado = quartoService.checkout(1L);
 
         assertEquals(StatusQuarto.AGUARDANDO_LIMPEZA, resultado.getStatus());
+    }
+
+    @Test
+    void checkoutBloqueiaQuartoNaoOcupado() {
+        when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
+
+        assertThrows(RuntimeException.class, () -> quartoService.checkout(1L));
+        verify(quartoRepository, never()).save(any());
+    }
+
+    @Test
+    void marcarComoAguardandoLimpezaPorCheckOut() {
+        quarto.setStatus(StatusQuarto.OCUPADO);
+        when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
+        when(quartoRepository.save(quarto)).thenReturn(quarto);
+
+        Quarto resultado = quartoService.marcarComoAguardandoLimpezaPorCheckOut(1L);
+
+        assertEquals(StatusQuarto.AGUARDANDO_LIMPEZA, resultado.getStatus());
+        verify(quartoRepository).save(quarto);
+    }
+
+    @Test
+    void marcarComoAguardandoLimpezaPorCheckOutBloqueiaStatusInvalido() {
+        when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
+
+        assertThrows(RuntimeException.class, () -> quartoService.marcarComoAguardandoLimpezaPorCheckOut(1L));
+        verify(quartoRepository, never()).save(any());
     }
 
     @Test
@@ -110,6 +139,14 @@ public class QuartoServiceTest {
         Quarto resultado = quartoService.finalizarLimpeza(1L);
 
         assertEquals(StatusQuarto.DISPONIVEL, resultado.getStatus());
+    }
+
+    @Test
+    void finalizarLimpezaBloqueiaStatusInvalido() {
+        when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
+
+        assertThrows(RuntimeException.class, () -> quartoService.finalizarLimpeza(1L));
+        verify(quartoRepository, never()).save(any());
     }
 
     @Test

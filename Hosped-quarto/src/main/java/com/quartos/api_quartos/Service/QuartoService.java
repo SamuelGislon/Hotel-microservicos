@@ -4,6 +4,9 @@ import com.quartos.api_quartos.model.ItemQuarto;
 import com.quartos.api_quartos.model.Quarto;
 import com.quartos.api_quartos.model.StatusQuarto;
 import com.quartos.api_quartos.repository.QuartoRepository;
+import com.quartos.api_quartos.exception.ConflitoException;
+import com.quartos.api_quartos.exception.RecursoNaoEncontradoException;
+import com.quartos.api_quartos.exception.RegraNegocioException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +22,7 @@ public class QuartoService {
 
     public Quarto cadastrar (Quarto quarto){
         if(quartoRepository.existsByNumeroQuarto(quarto.getNumeroQuarto())){
-            throw new RuntimeException("Já existe um quarto com esse número");
+            throw new ConflitoException("Já existe um quarto com esse número");
         }
         quarto.setStatus(StatusQuarto.DISPONIVEL);
         return quartoRepository.save(quarto);
@@ -30,7 +33,7 @@ public class QuartoService {
 
     public Quarto buscarPorId(Long id) {
         return quartoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Quarto não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Quarto não encontrado"));
     }
     public Quarto atualizar(Long id, Quarto quartoAtualizado){
         Quarto quarto = buscarPorId(id);
@@ -42,13 +45,16 @@ public class QuartoService {
     public void excluir(Long id) {
         Quarto quarto = buscarPorId(id);
         if (quarto.getStatus() == StatusQuarto.OCUPADO) {
-            throw new RuntimeException("Não é possível excluir um quarto ocupado");
+            throw new ConflitoException("Não é possível excluir um quarto ocupado");
         }
         quartoRepository.deleteById(id);
     }
     public Quarto adicionarItem(Long id, ItemQuarto item) {
         if (item.getQuantidade() <= 0) {
-            throw new RuntimeException("A quantidade deve ser maior que zero");
+            throw new RegraNegocioException("A quantidade deve ser maior que zero");
+        }
+        if (item.getNomeItem() == null || item.getNomeItem().isBlank()) {
+            throw new RegraNegocioException("Nome do item é obrigatório");
         }
         Quarto quarto = buscarPorId(id);
 
@@ -74,12 +80,13 @@ public class QuartoService {
         return quartoRepository.findByStatus(StatusQuarto.AGUARDANDO_LIMPEZA);
     }
     public Quarto checkout(Long id) {
-        Quarto quarto = buscarPorId(id);
-        quarto.setStatus(StatusQuarto.AGUARDANDO_LIMPEZA);
-        return quartoRepository.save(quarto);
+        return marcarComoAguardandoLimpezaPorCheckOut(id);
     }
     public Quarto finalizarLimpeza(Long id) {
         Quarto quarto = buscarPorId(id);
+        if (quarto.getStatus() != StatusQuarto.AGUARDANDO_LIMPEZA) {
+            throw new ConflitoException("Finalização de limpeza só é permitida para quarto aguardando limpeza");
+        }
         quarto.setStatus(StatusQuarto.DISPONIVEL);
         return quartoRepository.save(quarto);
     }
@@ -91,5 +98,15 @@ public class QuartoService {
                     quarto.setStatus(StatusQuarto.OCUPADO);
                     return quartoRepository.save(quarto);
                 });
+    }
+
+    @Transactional
+    public Quarto marcarComoAguardandoLimpezaPorCheckOut(Long id) {
+        Quarto quarto = buscarPorId(id);
+        if (quarto.getStatus() != StatusQuarto.OCUPADO) {
+            throw new ConflitoException("Checkout só é permitido para quarto ocupado");
+        }
+        quarto.setStatus(StatusQuarto.AGUARDANDO_LIMPEZA);
+        return quartoRepository.save(quarto);
     }
 }
