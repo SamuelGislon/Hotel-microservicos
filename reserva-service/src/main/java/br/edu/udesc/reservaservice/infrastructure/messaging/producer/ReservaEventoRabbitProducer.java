@@ -31,6 +31,7 @@ public class ReservaEventoRabbitProducer {
             event.reservaId(),
             event.hospedeId(),
             event.quartoId(),
+            event.quartoServicoId(),
             event.reservaStatus(),
             event.pagamentoModo(),
             event.pagamentoStatus()

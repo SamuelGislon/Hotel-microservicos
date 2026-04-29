@@ -8,6 +8,15 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:9973155}
     driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
 
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:${RABBITMQ_HOST:localhost}}
+    port: ${SPRING_RABBITMQ_PORT:${RABBITMQ_PORT:5672}}
+    username: ${SPRING_RABBITMQ_USERNAME:${RABBITMQ_USERNAME:guest}}
+    password: ${SPRING_RABBITMQ_PASSWORD:${RABBITMQ_PASSWORD:guest}}
+    listener:
+      simple:
+        default-requeue-rejected: false
+
   jpa:
     hibernate:
       ddl-auto: update

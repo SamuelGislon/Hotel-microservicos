@@ -110,7 +110,7 @@ public class ReservaService {
         registrarHistorico(reservaAtualizada, anterior, reservaAtualizada.getReservaStatus(), "Check-in realizado");
         reservaDomainEventPublisher.publicar(ReservaDomainEvent.checkInRealizado(reservaAtualizada));
         log.info(
-            "Check-in realizado. reservaId={}, quartoServicoId={}. Integração para marcar OCUPADO indisponível no Hosped-quarto.",
+            "Check-in realizado. reservaId={}, quartoServicoId={}. Evento enviado para integração com Hosped-quarto.",
             reservaAtualizada.getId(),
             reservaAtualizada.getQuartoServicoId()
         );

@@ -113,6 +113,28 @@ public class QuartoServiceTest {
     }
 
     @Test
+    void marcarComoOcupadoPorCheckIn() {
+        when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
+        when(quartoRepository.save(quarto)).thenReturn(quarto);
+
+        Optional<Quarto> resultado = quartoService.marcarComoOcupadoPorCheckIn(1L);
+
+        assertTrue(resultado.isPresent());
+        assertEquals(StatusQuarto.OCUPADO, resultado.get().getStatus());
+        verify(quartoRepository).save(quarto);
+    }
+
+    @Test
+    void marcarComoOcupadoPorCheckInQuartoInexistente() {
+        when(quartoRepository.findById(5L)).thenReturn(Optional.empty());
+
+        Optional<Quarto> resultado = quartoService.marcarComoOcupadoPorCheckIn(5L);
+
+        assertTrue(resultado.isEmpty());
+        verify(quartoRepository, never()).save(any());
+    }
+
+    @Test
     void buscaPorId(){
      when(quartoRepository.findById(1L)).thenReturn(Optional.of(quarto));
 

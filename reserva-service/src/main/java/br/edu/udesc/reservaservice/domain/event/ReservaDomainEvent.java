@@ -14,6 +14,7 @@ public record ReservaDomainEvent(
     UUID reservaId,
     UUID hospedeId,
     UUID quartoId,
+    Long quartoServicoId,
     ReservaStatus reservaStatus,
     PagamentoModo pagamentoModo,
     PagamentoStatus pagamentoStatus
@@ -43,6 +44,7 @@ public record ReservaDomainEvent(
             reserva.getId(),
             reserva.getHospede().getId(),
             reserva.getQuartoId(),
+            reserva.getQuartoServicoId(),
             reserva.getReservaStatus(),
             reserva.getPagamentoModo(),
             reserva.getPagamentoStatus()

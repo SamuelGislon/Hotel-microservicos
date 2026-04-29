@@ -9,6 +9,10 @@ spring:
       ddl-auto: create-drop
     show-sql: false
     database-platform: org.hibernate.dialect.H2Dialect
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
 
 server:
   port: 0

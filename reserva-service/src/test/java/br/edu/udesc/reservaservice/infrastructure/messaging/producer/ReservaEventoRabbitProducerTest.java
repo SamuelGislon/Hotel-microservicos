@@ -1,6 +1,7 @@
 package br.edu.udesc.reservaservice.infrastructure.messaging.producer;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -43,6 +44,7 @@ class ReservaEventoRabbitProducerTest {
             UUID.randomUUID(),
             UUID.randomUUID(),
             UUID.randomUUID(),
+            10L,
             br.edu.udesc.reservaservice.domain.enums.ReservaStatus.PENDENTE,
             br.edu.udesc.reservaservice.domain.enums.PagamentoModo.PAGO_NO_HOTEL,
             br.edu.udesc.reservaservice.domain.enums.PagamentoStatus.NAO_APLICAVEL
@@ -73,6 +75,7 @@ class ReservaEventoRabbitProducerTest {
             UUID.randomUUID(),
             UUID.randomUUID(),
             UUID.randomUUID(),
+            10L,
             br.edu.udesc.reservaservice.domain.enums.ReservaStatus.PENDENTE,
             br.edu.udesc.reservaservice.domain.enums.PagamentoModo.PAGO_NO_HOTEL,
             br.edu.udesc.reservaservice.domain.enums.PagamentoStatus.NAO_APLICAVEL
@@ -87,5 +90,37 @@ class ReservaEventoRabbitProducerTest {
         producer.publicarEvento(event);
 
         verify(eventoPublicacaoLogService).registrarFalha(eq(event), any(), any());
+    }
+
+    @Test
+    void devePublicarEventoDeCheckInComIdentificadorDoQuartoServico() {
+        ReservaEventoRabbitProducer producer = new ReservaEventoRabbitProducer(
+            rabbitTemplate,
+            new ObjectMapper().registerModule(new JavaTimeModule()),
+            eventoPublicacaoLogService
+        );
+
+        ReservaDomainEvent event = new ReservaDomainEvent(
+            UUID.randomUUID(),
+            "CHECKIN_REALIZADO",
+            LocalDateTime.now(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            10L,
+            br.edu.udesc.reservaservice.domain.enums.ReservaStatus.ATIVA,
+            br.edu.udesc.reservaservice.domain.enums.PagamentoModo.PAGO_NO_HOTEL,
+            br.edu.udesc.reservaservice.domain.enums.PagamentoStatus.NAO_APLICAVEL
+        );
+
+        producer.publicarEvento(event);
+
+        verify(rabbitTemplate).convertAndSend(
+            eq(RabbitMqConfig.EXCHANGE_RESERVA_EVENTOS),
+            eq(RabbitMqConfig.ROUTING_KEY_RESERVA_CHECKIN),
+            argThat((ReservaEventoPayload payload) -> payload.quartoServicoId().equals(10L)
+                && payload.eventType().equals("CHECKIN_REALIZADO")
+                && payload.reservaStatus() == br.edu.udesc.reservaservice.domain.enums.ReservaStatus.ATIVA)
+        );
     }
 }

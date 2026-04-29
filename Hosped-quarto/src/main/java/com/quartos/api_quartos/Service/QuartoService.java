@@ -6,8 +6,10 @@ import com.quartos.api_quartos.model.StatusQuarto;
 import com.quartos.api_quartos.repository.QuartoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class QuartoService {
@@ -80,5 +82,14 @@ public class QuartoService {
         Quarto quarto = buscarPorId(id);
         quarto.setStatus(StatusQuarto.DISPONIVEL);
         return quartoRepository.save(quarto);
+    }
+
+    @Transactional
+    public Optional<Quarto> marcarComoOcupadoPorCheckIn(Long id) {
+        return quartoRepository.findById(id)
+                .map(quarto -> {
+                    quarto.setStatus(StatusQuarto.OCUPADO);
+                    return quartoRepository.save(quarto);
+                });
     }
 }

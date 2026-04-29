@@ -13,6 +13,7 @@ public record ReservaEventoPayload(
     UUID reservaId,
     UUID hospedeId,
     UUID quartoId,
+    Long quartoServicoId,
     ReservaStatus reservaStatus,
     PagamentoModo pagamentoModo,
     PagamentoStatus pagamentoStatus
