@@ -16,7 +16,7 @@ public record AtualizarHospedeRequest(
 
     @NotBlank(message = "E-mail é obrigatório")
     @Email(message = "E-mail inválido")
-    @Size(max = 160, message = "E-mail deve ter no máximo 160 caracteres")
+    @Size(max = 160, message = "E-mail deve ter no máximo 150 caracteres")
     String email,
 
     @NotBlank(message = "Telefone é obrigatório")
