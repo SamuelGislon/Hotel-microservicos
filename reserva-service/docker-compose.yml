@@ -1,6 +1,6 @@
 services:
   reserva-postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: reserva-postgres
     environment:
       POSTGRES_DB: reserva_db
@@ -17,7 +17,7 @@ services:
       - hotel-network
 
   quarto-postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: quarto-postgres
     environment:
       POSTGRES_DB: hosped_quartos
@@ -34,7 +34,7 @@ services:
       - hotel-network
 
   users-postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: users-postgres
     environment:
       POSTGRES_DB: hosped_users
@@ -51,7 +51,7 @@ services:
       - hotel-network
 
   pagamento-postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: pagamento-postgres
     environment:
       POSTGRES_DB: hosped_pagamentos
