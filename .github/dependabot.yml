@@ -1,0 +1,84 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Sao_Paulo
+
+  - package-ecosystem: maven
+    directory: /Hosped-users
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:15"
+      timezone: America/Sao_Paulo
+
+  - package-ecosystem: maven
+    directory: /Hosped-quarto
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:30"
+      timezone: America/Sao_Paulo
+
+  - package-ecosystem: maven
+    directory: /hosped-pagamento
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:45"
+      timezone: America/Sao_Paulo
+
+  - package-ecosystem: maven
+    directory: /reserva-service
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+
+  - package-ecosystem: maven
+    directory: /hosped-gateway
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:15"
+      timezone: America/Sao_Paulo
+
+  - package-ecosystem: docker
+    directory: /Hosped-users
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /Hosped-quarto
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /hosped-pagamento
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /reserva-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /hosped-gateway
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: /reserva-service
+    schedule:
+      interval: weekly

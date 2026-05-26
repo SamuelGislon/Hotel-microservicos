@@ -1,0 +1,30 @@
+app:
+  environment: ${APP_ENVIRONMENT:HOMOL}
+
+spring:
+  jpa:
+    show-sql: false
+  mail:
+    properties:
+      mail:
+        debug: false
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    com.hosped.ms_pagamentos: INFO
+
+info:
+  app:
+    environment: ${APP_ENVIRONMENT:HOMOL}

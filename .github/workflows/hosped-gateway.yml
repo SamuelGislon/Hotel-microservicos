@@ -1,0 +1,41 @@
+name: CI/CD - Hosped Gateway
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+    tags:
+      - "v*.*.*"
+    paths:
+      - "hosped-gateway/**"
+      - ".github/workflows/hosped-gateway.yml"
+      - ".github/workflows/_java-service-ci-cd.yml"
+      - "VERSION"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "hosped-gateway/**"
+      - ".github/workflows/hosped-gateway.yml"
+      - ".github/workflows/_java-service-ci-cd.yml"
+
+jobs:
+  service:
+    uses: ./.github/workflows/_java-service-ci-cd.yml
+    with:
+      service_name: Hosped Gateway
+      service_path: hosped-gateway
+      docker_image: hosped-gateway
+      dockerhub_namespace: ${{ vars.DOCKERHUB_NAMESPACE }}
+      sonar_project_key: ${{ vars.SONAR_PROJECT_KEY_HOSPED_GATEWAY }}
+      sonar_organization: ${{ vars.SONAR_ORGANIZATION }}
+      sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      RENDER_DEPLOY_HOOK_DEV: ${{ secrets.RENDER_DEPLOY_HOOK_HOSPED_GATEWAY_DEV }}
+      RENDER_DEPLOY_HOOK_HOMOL: ${{ secrets.RENDER_DEPLOY_HOOK_HOSPED_GATEWAY_HOMOL }}

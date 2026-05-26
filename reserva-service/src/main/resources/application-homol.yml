@@ -1,0 +1,22 @@
+app:
+  environment: ${APP_ENVIRONMENT:HOMOL}
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    br.edu.udesc.reservaservice: INFO
+
+info:
+  app:
+    environment: ${APP_ENVIRONMENT:HOMOL}

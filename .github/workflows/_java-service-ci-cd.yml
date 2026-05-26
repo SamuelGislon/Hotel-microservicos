@@ -1,0 +1,215 @@
+name: Java service CI/CD
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+      service_path:
+        required: true
+        type: string
+      docker_image:
+        required: true
+        type: string
+      dockerhub_namespace:
+        required: false
+        type: string
+        default: ""
+      sonar_project_key:
+        required: false
+        type: string
+        default: ""
+      sonar_organization:
+        required: false
+        type: string
+        default: ""
+      sonar_host_url:
+        required: false
+        type: string
+        default: "https://sonarcloud.io"
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+      SONAR_TOKEN:
+        required: false
+      RENDER_DEPLOY_HOOK_DEV:
+        required: false
+      RENDER_DEPLOY_HOOK_HOMOL:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci-cd:
+    name: Build, test, image and deploy
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ inputs.sonar_project_key }}
+      SONAR_ORGANIZATION: ${{ inputs.sonar_organization }}
+      SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
+      RENDER_DEPLOY_HOOK_DEV: ${{ secrets.RENDER_DEPLOY_HOOK_DEV }}
+      RENDER_DEPLOY_HOOK_HOMOL: ${{ secrets.RENDER_DEPLOY_HOOK_HOMOL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build and test ${{ inputs.service_name }}
+        working-directory: ${{ inputs.service_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${SONAR_TOKEN}" ] && [ -n "${SONAR_PROJECT_KEY}" ]; then
+            sonar_host_url="${SONAR_HOST_URL:-https://sonarcloud.io}"
+            sonar_args=(
+              "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+              "-Dsonar.host.url=${sonar_host_url}"
+              "-Dsonar.token=${SONAR_TOKEN}"
+            )
+            if [ -n "${SONAR_ORGANIZATION}" ]; then
+              sonar_args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
+            fi
+            mvn -B clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "${sonar_args[@]}"
+          else
+            mvn -B clean verify
+          fi
+
+      - name: Set Docker metadata
+        id: image
+        shell: bash
+        env:
+          DOCKERHUB_NAMESPACE_INPUT: ${{ inputs.dockerhub_namespace }}
+          SERVICE_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          set -euo pipefail
+          namespace="${DOCKERHUB_NAMESPACE_INPUT:-${DOCKERHUB_USERNAME:-local}}"
+          image="${namespace}/${SERVICE_IMAGE}"
+          short_sha="${GITHUB_SHA::12}"
+          version="1.0.0"
+          if [ -f VERSION ]; then
+            version="$(tr -d '[:space:]' < VERSION)"
+          fi
+
+          push_enabled="false"
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ] && [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            push_enabled="true"
+          fi
+
+          deploy_image=""
+          tags=("${image}:sha-${short_sha}")
+          if [ "${GITHUB_REF_TYPE}" = "branch" ]; then
+            case "${GITHUB_REF_NAME}" in
+              develop)
+                tags+=("${image}:dev-${GITHUB_SHA}")
+                deploy_image="${image}:dev-${GITHUB_SHA}"
+                ;;
+              main)
+                tags+=("${image}:homol-${GITHUB_SHA}")
+                deploy_image="${image}:homol-${GITHUB_SHA}"
+                ;;
+              feature/*)
+                safe_branch="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9_.-]+#-#g')"
+                tags+=("${image}:${safe_branch}-${short_sha}")
+                ;;
+            esac
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ] && [[ "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            tags+=("${image}:${GITHUB_REF_NAME}" "${image}:latest")
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}"
+            echo "EOF"
+            echo "image=${image}"
+            echo "deploy_image=${deploy_image}"
+            echo "version=${version}"
+            echo "push_enabled=${push_enabled}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set build date
+        id: build_date
+        shell: bash
+        run: echo "value=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: ${{ steps.image.outputs.push_enabled == 'true' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ inputs.service_path }}
+          push: ${{ steps.image.outputs.push_enabled == 'true' }}
+          tags: ${{ steps.image.outputs.tags }}
+          build-args: |
+            BUILD_DATE=${{ steps.build_date.outputs.value }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.image.outputs.version }}
+
+      - name: Deploy to Render
+        if: ${{ github.event_name != 'pull_request' }}
+        shell: bash
+        env:
+          DEPLOY_IMAGE: ${{ steps.image.outputs.deploy_image }}
+          PUSH_ENABLED: ${{ steps.image.outputs.push_enabled }}
+        run: |
+          set -euo pipefail
+          hook=""
+          case "${GITHUB_REF_NAME}" in
+            develop)
+              hook="${RENDER_DEPLOY_HOOK_DEV}"
+              ;;
+            main)
+              hook="${RENDER_DEPLOY_HOOK_HOMOL}"
+              ;;
+            *)
+              echo "No Render deployment for ${GITHUB_REF_NAME}."
+              exit 0
+              ;;
+          esac
+
+          if [ "${PUSH_ENABLED}" != "true" ]; then
+            echo "Docker Hub credentials are not configured; skipping Render deployment."
+            exit 0
+          fi
+
+          if [ -z "${hook}" ]; then
+            echo "Render deploy hook is not configured for ${GITHUB_REF_NAME}; skipping deployment."
+            exit 0
+          fi
+
+          if [ -z "${DEPLOY_IMAGE}" ]; then
+            echo "No deployment image was generated for ${GITHUB_REF_NAME}; skipping deployment."
+            exit 0
+          fi
+
+          separator="?"
+          if [[ "${hook}" == *"?"* ]]; then
+            separator="&"
+          fi
+
+          encoded_image="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${DEPLOY_IMAGE}")"
+          curl -fsS -X POST "${hook}${separator}imgURL=${encoded_image}"

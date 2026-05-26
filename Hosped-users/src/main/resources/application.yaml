@@ -18,7 +18,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 server:
-  port: ${SERVER_PORT:8085}
+  port: ${PORT:${SERVER_PORT:8085}}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -31,3 +31,29 @@ users:
     cpf: ${USERS_SEED_ADMIN_CPF:00000000000}
     password: ${USERS_SEED_ADMIN_PASSWORD:Admin@123}
     name: ${USERS_SEED_ADMIN_NAME:Administrador Local}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  info:
+    env:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+
+info:
+  app:
+    name: ${spring.application.name}
+    environment: ${APP_ENVIRONMENT:LOCAL}

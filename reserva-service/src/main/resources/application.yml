@@ -31,10 +31,16 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,circuitbreakers
+        include: health,info,metrics,prometheus,circuitbreakers
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  info:
+    env:
+      enabled: true
 
 springdoc:
   swagger-ui:
@@ -77,7 +83,12 @@ resilience4j:
         timeout-duration: 2s
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${PORT:${SERVER_PORT:8080}}
+
+info:
+  app:
+    name: ${spring.application.name}
+    environment: ${APP_ENVIRONMENT:LOCAL}
 
 ---
 spring:

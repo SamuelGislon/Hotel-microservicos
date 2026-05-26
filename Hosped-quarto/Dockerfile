@@ -5,6 +5,15 @@ COPY src ./src
 RUN mvn -B clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=1.0.0
+LABEL org.opencontainers.image.title="Hosped Quarto Service" \
+      org.opencontainers.image.description="Microsservico de quartos do sistema de hotel" \
+      org.opencontainers.image.source="https://github.com/SamuelGislon/Hotel-microservicos" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}"
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080

@@ -86,6 +86,8 @@ services:
       context: ./hosped-gateway
     container_name: hosped-gateway
     environment:
+      SPRING_PROFILES_ACTIVE: ${GATEWAY_SPRING_PROFILES_ACTIVE:-dev}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-DEV}
       SERVER_PORT: 8080
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be defined}"
       JWT_ISSUER: "${JWT_ISSUER:?JWT_ISSUER must be defined}"
@@ -108,7 +110,8 @@ services:
       context: ./reserva-service
     container_name: reserva-service
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      SPRING_PROFILES_ACTIVE: ${RESERVA_SPRING_PROFILES_ACTIVE:-docker,dev}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-DEV}
       SERVER_PORT: 8080
       DB_HOST: reserva-db
       DB_PORT: 5432
@@ -131,6 +134,8 @@ services:
         condition: service_healthy
       hosped-quarto:
         condition: service_started
+    ports:
+      - "8081:8080"
     networks:
       - hosped-network
 
@@ -139,6 +144,8 @@ services:
       context: ./Hosped-quarto
     container_name: hosped-quarto
     environment:
+      SPRING_PROFILES_ACTIVE: ${QUARTO_SPRING_PROFILES_ACTIVE:-dev}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-DEV}
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://quarto-db:5432/hosped_quartos
       SPRING_DATASOURCE_USERNAME: quartos_user
@@ -152,6 +159,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    ports:
+      - "8084:8080"
     networks:
       - hosped-network
 
@@ -160,6 +169,8 @@ services:
       context: ./Hosped-users
     container_name: hosped-users
     environment:
+      SPRING_PROFILES_ACTIVE: ${USERS_SPRING_PROFILES_ACTIVE:-dev}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-DEV}
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://users-db:5432/hosped_users
       SPRING_DATASOURCE_USERNAME: users_user
@@ -174,6 +185,8 @@ services:
     depends_on:
       users-db:
         condition: service_healthy
+    ports:
+      - "8085:8080"
     networks:
       - hosped-network
 
@@ -182,6 +195,8 @@ services:
       context: ./hosped-pagamento
     container_name: hosped-pagamento
     environment:
+      SPRING_PROFILES_ACTIVE: ${PAGAMENTO_SPRING_PROFILES_ACTIVE:-dev}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-DEV}
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://pagamento-db:5432/hosped_pagamentos
       SPRING_DATASOURCE_USERNAME: pagamentos_user
@@ -201,6 +216,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    ports:
+      - "8083:8080"
     networks:
       - hosped-network
 

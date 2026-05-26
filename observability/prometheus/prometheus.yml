@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: hosped-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-gateway:8080
+
+  - job_name: reserva-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - reserva-service:8080
+
+  - job_name: hosped-quarto
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-quarto:8080
+
+  - job_name: hosped-users
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-users:8080
+
+  - job_name: hosped-pagamento
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-pagamento:8080

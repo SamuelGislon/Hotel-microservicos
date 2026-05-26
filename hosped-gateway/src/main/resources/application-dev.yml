@@ -1,0 +1,16 @@
+app:
+  environment: ${APP_ENVIRONMENT:DEV}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.hosped.api_gateway: DEBUG
+
+info:
+  app:
+    environment: ${APP_ENVIRONMENT:DEV}

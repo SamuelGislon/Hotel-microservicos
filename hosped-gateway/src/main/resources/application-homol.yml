@@ -1,0 +1,16 @@
+app:
+  environment: ${APP_ENVIRONMENT:HOMOL}
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    com.hosped.api_gateway: INFO
+
+info:
+  app:
+    environment: ${APP_ENVIRONMENT:HOMOL}
