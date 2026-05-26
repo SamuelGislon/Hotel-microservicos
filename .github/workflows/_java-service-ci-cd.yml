@@ -90,6 +90,16 @@ jobs:
             mvn -B clean verify
           fi
 
+      - name: Validate Docker Hub credentials
+        if: ${{ github.event_name != 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DOCKERHUB_USERNAME}" ] || [ -z "${DOCKERHUB_TOKEN}" ]; then
+            echo "::error::DOCKERHUB_USERNAME and DOCKERHUB_TOKEN must be configured as GitHub Actions secrets to publish Docker images."
+            exit 1
+          fi
+
       - name: Set Docker metadata
         id: image
         shell: bash
