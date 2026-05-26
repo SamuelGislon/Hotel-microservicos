@@ -159,7 +159,7 @@ jobs:
           password: ${{ env.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./${{ inputs.service_path }}
           push: ${{ steps.image.outputs.push_enabled == 'true' }}
