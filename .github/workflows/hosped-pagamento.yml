@@ -1,6 +1,7 @@
 name: CI/CD - Hosped Pagamento
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
