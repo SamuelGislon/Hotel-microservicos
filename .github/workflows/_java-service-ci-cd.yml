@@ -76,20 +76,50 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "${SONAR_TOKEN}" ] && [ -n "${SONAR_PROJECT_KEY}" ]; then
-            sonar_host_url="${SONAR_HOST_URL:-https://sonarcloud.io}"
-            sonar_args=(
-              "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
-              "-Dsonar.host.url=${sonar_host_url}"
-              "-Dsonar.token=${SONAR_TOKEN}"
-            )
-            if [ -n "${SONAR_ORGANIZATION}" ]; then
-              sonar_args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
-            fi
-            mvn -B clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "${sonar_args[@]}"
-          else
-            mvn -B clean verify
+          mvn -B clean verify
+
+      - name: Analyze with SonarQube or SonarCloud
+        working-directory: ${{ inputs.service_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF_TYPE}" != "branch" ] || [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::notice title=Sonar analysis skipped::SonarCloud analysis is intentionally executed only on main. The free SonarCloud plan exposes the main branch dashboard only; ${GITHUB_REF_NAME} keeps build, tests, Docker image and deployment steps without Sonar."
+            exit 0
           fi
+
+          missing=()
+          if [ -z "${SONAR_TOKEN}" ]; then
+            missing+=("SONAR_TOKEN secret")
+          fi
+          if [ -z "${SONAR_PROJECT_KEY}" ]; then
+            missing+=("SONAR_PROJECT_KEY variable for ${{ inputs.service_name }}")
+          fi
+
+          sonar_host_url="${SONAR_HOST_URL:-https://sonarcloud.io}"
+          if [[ "${sonar_host_url}" == *"sonarcloud.io"* ]] && [ -z "${SONAR_ORGANIZATION}" ]; then
+            missing+=("SONAR_ORGANIZATION variable")
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf -v missing_list '%s, ' "${missing[@]}"
+            missing_list="${missing_list%, }"
+            echo "::warning title=Sonar analysis skipped::Missing ${missing_list}. Configure GitHub Actions secrets/variables to enable Sonar for ${{ inputs.service_name }}."
+            exit 0
+          fi
+
+          sonar_args=(
+            "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+            "-Dsonar.projectName=${{ inputs.service_name }}"
+            "-Dsonar.host.url=${sonar_host_url}"
+            "-Dsonar.token=${SONAR_TOKEN}"
+          )
+          if [ -n "${SONAR_ORGANIZATION}" ]; then
+            sonar_args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
+          fi
+
+          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "${sonar_args[@]}"
 
       - name: Validate Docker Hub credentials
         if: ${{ github.event_name != 'pull_request' }}
