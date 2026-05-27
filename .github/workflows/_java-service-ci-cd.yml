@@ -110,7 +110,7 @@ jobs:
         run: |
           set -euo pipefail
           namespace="${DOCKERHUB_NAMESPACE_INPUT:-${DOCKERHUB_USERNAME:-local}}"
-          image="${namespace}/${SERVICE_IMAGE}"
+          image="docker.io/${namespace}/${SERVICE_IMAGE}"
           short_sha="${GITHUB_SHA::12}"
           version="1.0.0"
           if [ -f VERSION ]; then
@@ -128,11 +128,11 @@ jobs:
             case "${GITHUB_REF_NAME}" in
               develop)
                 tags+=("${image}:dev-${GITHUB_SHA}")
-                deploy_image="${image}:dev-${GITHUB_SHA}"
+                deploy_image="${image}@dev-${GITHUB_SHA}"
                 ;;
               main)
                 tags+=("${image}:homol-${GITHUB_SHA}")
-                deploy_image="${image}:homol-${GITHUB_SHA}"
+                deploy_image="${image}@homol-${GITHUB_SHA}"
                 ;;
               feature/*)
                 safe_branch="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9_.-]+#-#g')"
@@ -223,4 +223,4 @@ jobs:
           fi
 
           encoded_image="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${DEPLOY_IMAGE}")"
-          curl -fsS -X POST "${hook}${separator}imgURL=${encoded_image}"
+          curl --fail-with-body -sS -X POST "${hook}${separator}imgURL=${encoded_image}"
