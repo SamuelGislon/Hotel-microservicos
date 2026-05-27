@@ -139,6 +139,22 @@ Todos chamam o workflow reutilizavel `_java-service-ci-cd.yml`, que executa:
 
 As imagens usam o namespace `DOCKERHUB_NAMESPACE` quando configurado; caso contrario, usam `DOCKERHUB_USERNAME`.
 
+Namespace Docker Hub utilizado no ambiente DEV:
+
+```text
+DOCKERHUB_NAMESPACE=samuelgislon
+```
+
+Repositorios Docker Hub:
+
+| Microsservico | Repositorio | Imagem DEV inicial |
+| --- | --- | --- |
+| Hosped Users | `samuelgislon/hosped-users` | `docker.io/samuelgislon/hosped-users:dev-5607a70953f54aed88b773d52679e6851808c878` |
+| Hosped Quarto | `samuelgislon/hosped-quarto` | `docker.io/samuelgislon/hosped-quarto:dev-5607a70953f54aed88b773d52679e6851808c878` |
+| Hosped Pagamento | `samuelgislon/hosped-pagamento` | `docker.io/samuelgislon/hosped-pagamento:dev-5607a70953f54aed88b773d52679e6851808c878` |
+| Reserva Service | `samuelgislon/reserva-service` | `docker.io/samuelgislon/reserva-service:dev-5607a70953f54aed88b773d52679e6851808c878` |
+| Hosped Gateway | `samuelgislon/hosped-gateway` | `docker.io/samuelgislon/hosped-gateway:dev-5607a70953f54aed88b773d52679e6851808c878` |
+
 Tags geradas:
 
 - `sha-<short_sha>` em builds gerais;
@@ -212,7 +228,7 @@ Credenciais de banco, RabbitMQ, JWT e SMTP devem ser configuradas no Render como
 
 Crie dois servicos Render para cada microsservico: um DEV e um HOMOL. Configure cada servico para usar imagem Docker externa e gere um deploy hook.
 
-Placeholders de URLs:
+URLs Render:
 
 | Servico | DEV | HOMOL |
 | --- | --- | --- |
@@ -223,6 +239,106 @@ Placeholders de URLs:
 | Pagamento | `https://hosped-pagamento-dev.onrender.com` | `https://hosped-pagamento-homol.onrender.com` |
 
 O workflow chama o deploy hook com `imgURL=<imagem-publicada-no-Docker-Hub>`.
+
+Deploy hooks DEV configurados como GitHub Actions Secrets:
+
+| Servico Render DEV | Secret GitHub |
+| --- | --- |
+| `hosped-users-dev` | `RENDER_DEPLOY_HOOK_HOSPED_USERS_DEV` |
+| `hosped-quarto-dev` | `RENDER_DEPLOY_HOOK_HOSPED_QUARTO_DEV` |
+| `hosped-pagamento-dev` | `RENDER_DEPLOY_HOOK_HOSPED_PAGAMENTO_DEV` |
+| `reserva-service-dev` | `RENDER_DEPLOY_HOOK_RESERVA_SERVICE_DEV` |
+| `hosped-gateway-dev` | `RENDER_DEPLOY_HOOK_HOSPED_GATEWAY_DEV` |
+
+Os valores dos deploy hooks sao secretos e nao devem ser commitados no repositorio.
+
+## Infraestrutura DEV No Render
+
+Banco PostgreSQL DEV/HOMOL:
+
+```text
+Servico Render: hotel-microservicos-bancos
+Internal host: dpg-d8avm9u7r5hc73fehk0g-a
+Port: 5432
+Username: usuario_bd_hotel
+Password: configurado apenas no Render
+```
+
+Databases DEV criados na mesma instancia PostgreSQL:
+
+```text
+hosped_users_dev
+hosped_quartos_dev
+hosped_pagamentos_dev
+reserva_db_dev
+```
+
+Databases HOMOL criados na mesma instancia PostgreSQL:
+
+```text
+hosped_users_homol
+hosped_quartos_homol
+hosped_pagamentos_homol
+reserva_db_homol
+```
+
+Variaveis de banco nos servicos DEV:
+
+```text
+# Hosped Users
+SPRING_DATASOURCE_URL=jdbc:postgresql://dpg-d8avm9u7r5hc73fehk0g-a:5432/hosped_users_dev
+SPRING_DATASOURCE_USERNAME=usuario_bd_hotel
+SPRING_DATASOURCE_PASSWORD=<configurado-no-Render>
+
+# Hosped Quarto
+SPRING_DATASOURCE_URL=jdbc:postgresql://dpg-d8avm9u7r5hc73fehk0g-a:5432/hosped_quartos_dev
+SPRING_DATASOURCE_USERNAME=usuario_bd_hotel
+SPRING_DATASOURCE_PASSWORD=<configurado-no-Render>
+
+# Hosped Pagamento
+SPRING_DATASOURCE_URL=jdbc:postgresql://dpg-d8avm9u7r5hc73fehk0g-a:5432/hosped_pagamentos_dev
+SPRING_DATASOURCE_USERNAME=usuario_bd_hotel
+SPRING_DATASOURCE_PASSWORD=<configurado-no-Render>
+
+# Reserva Service
+DB_HOST=dpg-d8avm9u7r5hc73fehk0g-a
+DB_PORT=5432
+DB_NAME=reserva_db_dev
+DB_USER=usuario_bd_hotel
+DB_PASSWORD=<configurado-no-Render>
+```
+
+RabbitMQ DEV no CloudAMQP:
+
+```text
+Host: shark.rmq.cloudamqp.com
+Port: 5671
+Virtual host DEV: ojyobvsg
+SSL: true
+Username/password: configurados apenas no Render
+```
+
+RabbitMQ HOMOL no CloudAMQP:
+
+```text
+Host: shark.rmq.cloudamqp.com
+Port: 5671
+Virtual host HOMOL: ldkpunsg
+SSL: true
+Username/password: configurados apenas no Render
+```
+
+Validacao RabbitMQ DEV realizada no RabbitMQ Manager:
+
+```text
+Connections: 3 conexoes ativas
+Exchanges: hosped.exchange, integracao.eventos.exchange, reserva.eventos.exchange
+Queues: ms-pagamentos.reservas-criadas, ms-reservas.pagamentos-processados,
+        pagamento.reserva.confirmado.queue, quarto.reserva.checkin.queue,
+        quarto.reserva.checkout.queue, reserva.eventos.monitoramento.queue
+```
+
+Valores sensiveis como Docker Hub token, deploy hooks, senhas do PostgreSQL, senhas do CloudAMQP, `JWT_SECRET` e credenciais SMTP devem ficar apenas em GitHub Actions Secrets ou nas Environment Variables do Render.
 
 ## Observabilidade
 
@@ -270,6 +386,33 @@ curl http://localhost:8081/actuator/prometheus
 curl http://localhost:8083/swagger-ui.html
 ```
 
+Validar endpoints DEV no Render:
+
+```bash
+curl https://hosped-gateway-dev.onrender.com/actuator/health
+curl https://hosped-users-dev.onrender.com/actuator/health
+curl https://hosped-quarto-dev.onrender.com/actuator/health
+curl https://hosped-pagamento-dev.onrender.com/actuator/health
+curl https://reserva-service-dev.onrender.com/actuator/health
+
+curl https://hosped-gateway-dev.onrender.com/actuator/prometheus
+curl https://hosped-users-dev.onrender.com/actuator/prometheus
+curl https://hosped-quarto-dev.onrender.com/actuator/prometheus
+curl https://hosped-pagamento-dev.onrender.com/actuator/prometheus
+curl https://reserva-service-dev.onrender.com/actuator/prometheus
+```
+
+Validar Swagger DEV no Render:
+
+```text
+https://hosped-users-dev.onrender.com/swagger-ui.html
+https://hosped-quarto-dev.onrender.com/swagger-ui.html
+https://hosped-pagamento-dev.onrender.com/swagger-ui.html
+https://reserva-service-dev.onrender.com/swagger-ui.html
+```
+
+O Gateway nao possui Swagger proprio.
+
 Validar HOMOL sem Swagger:
 
 ```bash
@@ -302,13 +445,11 @@ curl -i http://localhost:8083/api-docs
 | Prometheus e Grafana | Compose, Prometheus config, datasource e dashboard Grafana criados. |
 | Pipeline separado por microsservico | Cinco workflows especificos criados. |
 | README | Este documento descreve arquitetura, execucao, CI/CD, secrets, ambientes e entregaveis. |
-| URLs DEV/HOMOL | Placeholders documentados para preenchimento apos criacao no Render. |
+| URLs DEV/HOMOL | URLs DEV documentadas; URLs HOMOL ficam como padrao esperado para a pessoa responsavel por HOMOL. |
 | Dashboards | Dashboard `Hotel Microservices` provisionado no Grafana. |
 
 ## Pendencias Externas
 
-- Criar a branch `develop` no remoto.
-- Criar os servicos DEV/HOMOL no Render.
-- Configurar Docker Hub, Sonar e Render nos secrets/vars do GitHub.
-- Configurar bancos, RabbitMQ e demais variaveis sensiveis no Render.
-- Substituir os placeholders de URLs DEV/HOMOL pelas URLs reais.
+- Configurar SonarCloud/SonarQube caso a analise estatica seja exigida no ambiente remoto.
+- Concluir configuracao HOMOL em `main`, incluindo services Render, deploy hooks HOMOL e variaveis runtime HOMOL.
+- Manter credenciais reais fora do repositorio, usando GitHub Actions Secrets e Environment Variables do Render.
