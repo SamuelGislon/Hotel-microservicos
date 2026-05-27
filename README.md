@@ -138,7 +138,7 @@ Todos chamam o workflow reutilizavel `_java-service-ci-cd.yml`, que executa:
 2. setup Java 21;
 3. cache Maven;
 4. `mvn -B clean verify`;
-5. analise SonarCloud/SonarQube quando `SONAR_TOKEN`, project key e organizacao estiverem configurados;
+5. analise SonarCloud/SonarQube somente na branch `main`, quando `SONAR_TOKEN`, project key e organizacao estiverem configurados;
 6. build da imagem Docker;
 7. push para Docker Hub quando `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` existirem;
 8. deploy Render por deploy hook em `develop` e `main`.
@@ -153,6 +153,8 @@ A analise fica no step `Analyze with SonarQube or SonarCloud` do workflow reutil
 - `reserva-service`;
 - `hosped-gateway`.
 
+A analise SonarCloud esta integrada aos pipelines, porem, por limitacao do plano gratuito, o dashboard visivel e mantido apenas na branch `main`. Por isso, o workflow executa Sonar somente quando o ref atual e a branch `main`. A branch `develop` continua executando build, testes, Docker, publicacao de imagem e deploy DEV, mas pula a analise SonarCloud com uma mensagem clara no log. Para validacao academica, a branch `main` contem a analise visivel no SonarCloud e representa HOMOL/release conforme o Git Flow. Nao sera usado upgrade pago do SonarCloud.
+
 O comando usado pelo pipeline e:
 
 ```bash
@@ -164,12 +166,14 @@ mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
   -Dsonar.organization=<sonar-organization>
 ```
 
-Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. Se `SONAR_TOKEN`, project key ou `SONAR_ORGANIZATION` estiverem ausentes, o workflow registra um warning claro e pula somente a analise Sonar, mantendo build e testes executados.
+Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. Na `main`, se `SONAR_TOKEN`, project key ou `SONAR_ORGANIZATION` estiverem ausentes, o workflow registra um warning claro e pula somente a analise Sonar, mantendo build e testes executados.
 
 Resultados:
 
-- SonarCloud: acesse `https://sonarcloud.io/projects` e abra o projeto configurado por `SONAR_PROJECT_KEY_*`.
+- SonarCloud: acesse `https://sonarcloud.io/projects`, abra o projeto configurado por `SONAR_PROJECT_KEY_*` e consulte o dashboard da branch `main`.
 - SonarQube proprio: acesse a URL definida em `SONAR_HOST_URL` e abra o projeto correspondente.
+
+Na `develop`, o log esperado e um notice informando que a analise foi pulada por causa da limitacao do plano gratuito do SonarCloud. Isso nao invalida o pipeline DEV.
 
 ## Docker Hub e Tags
 
@@ -560,7 +564,7 @@ curl -i http://localhost:8083/api-docs
 | CI com GitHub Actions | Criados workflows individuais por microsservico. |
 | Build automatizado | `mvn clean verify` em cada pipeline. |
 | Testes automatizados | Testes Maven executados em cada pipeline. |
-| SonarQube/SonarCloud | Step dedicado no workflow reutilizavel; roda por microsservico quando `SONAR_TOKEN` e vars Sonar existem. |
+| SonarQube/SonarCloud | Step dedicado no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
 | CD automatico | Render deploy hooks em `develop` e `main`. |
 | DEV em `develop` | `develop` publica tag `dev-*` e aciona hook DEV. |
 | HOMOL em `main` | `main` publica tag `homol-*` e aciona hook HOMOL. |
@@ -581,7 +585,7 @@ curl -i http://localhost:8083/api-docs
 
 ## Pendencias Externas
 
-- Configurar `SONAR_TOKEN`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*` no GitHub para publicar os relatorios Sonar.
+- Manter `SONAR_TOKEN`, `SONAR_HOST_URL`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*` configurados no GitHub para publicar os relatorios Sonar na branch `main`.
 - Criar os Web Services externos `hotel-prometheus-dev` e `hotel-grafana-dev` no Render, caso a observabilidade precise estar acessivel publicamente.
 - Concluir configuracao HOMOL em `main`, incluindo services Render, deploy hooks HOMOL e variaveis runtime HOMOL.
 - Manter credenciais reais fora do repositorio, usando GitHub Actions Secrets e Environment Variables do Render.

@@ -84,6 +84,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ "${GITHUB_REF_TYPE}" != "branch" ] || [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::notice title=Sonar analysis skipped::SonarCloud analysis is intentionally executed only on main. The free SonarCloud plan exposes the main branch dashboard only; ${GITHUB_REF_NAME} keeps build, tests, Docker image and deployment steps without Sonar."
+            exit 0
+          fi
+
           missing=()
           if [ -z "${SONAR_TOKEN}" ]; then
             missing+=("SONAR_TOKEN secret")
