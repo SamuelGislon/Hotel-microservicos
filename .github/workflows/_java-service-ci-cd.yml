@@ -128,11 +128,11 @@ jobs:
             case "${GITHUB_REF_NAME}" in
               develop)
                 tags+=("${image}:dev-${GITHUB_SHA}")
-                deploy_image="${image}@dev-${GITHUB_SHA}"
+                deploy_image="${image}:dev-${GITHUB_SHA}"
                 ;;
               main)
                 tags+=("${image}:homol-${GITHUB_SHA}")
-                deploy_image="${image}@homol-${GITHUB_SHA}"
+                deploy_image="${image}:homol-${GITHUB_SHA}"
                 ;;
               feature/*)
                 safe_branch="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9_.-]+#-#g')"
