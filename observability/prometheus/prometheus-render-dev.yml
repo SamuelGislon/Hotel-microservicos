@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: hosped-gateway-dev
+    scheme: https
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-gateway-dev.onrender.com
+
+  - job_name: reserva-service-dev
+    scheme: https
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - reserva-service-dev.onrender.com
+
+  - job_name: hosped-quarto-dev
+    scheme: https
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-quarto-dev.onrender.com
+
+  - job_name: hosped-users-dev
+    scheme: https
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-users-dev.onrender.com
+
+  - job_name: hosped-pagamento-dev
+    scheme: https
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - hosped-pagamento-dev.onrender.com
