@@ -272,11 +272,11 @@ URLs Render:
 
 | Servico | DEV | HOMOL |
 | --- | --- | --- |
-| Gateway | `https://hosped-gateway-dev.onrender.com` | `https://hosped-gateway-homol.onrender.com` |
-| Reserva | `https://reserva-service-dev.onrender.com` | `https://reserva-service-homol.onrender.com` |
+| Gateway | `https://hosped-gateway-dev.onrender.com` | - |
+| Reserva | `https://reserva-service-dev.onrender.com` | `https://hosped-reserva-homol.onrender.com` |
 | Quarto | `https://hosped-quarto-dev.onrender.com` | `https://hosped-quarto-homol.onrender.com` |
-| Users | `https://hosped-users-dev.onrender.com` | `https://hosped-users-homol.onrender.com` |
-| Pagamento | `https://hosped-pagamento-dev.onrender.com` | `https://hosped-pagamento-homol.onrender.com` |
+| Users | `https://hosped-users-dev.onrender.com` | - |
+| Pagamento | `https://hosped-pagamento-dev.onrender.com` | `https://hotel-microservicos.onrender.com` |
 
 O workflow chama o deploy hook com `imgURL=<imagem-publicada-no-Docker-Hub>`.
 
@@ -447,12 +447,14 @@ Grafana provisiona automaticamente o datasource Prometheus e o dashboard `Hotel 
 
 Para permitir acesso sem depender do ambiente local, a solucao preparada e hospedar Prometheus e Grafana como Web Services no Render:
 
-| Ferramenta | URL DEV sugerida | Arquivos |
-| --- | --- | --- |
-| Prometheus externo | `https://hotel-prometheus-dev.onrender.com` | `observability/prometheus/Dockerfile.render`, `observability/prometheus/prometheus-render-dev.yml` |
-| Grafana externo | `https://hotel-grafana-dev.onrender.com` | `observability/grafana/Dockerfile.render`, `observability/grafana/provisioning-external/**`, `observability/grafana/dashboards/**` |
+| Ferramenta | Ambiente | URL | Arquivos |
+| --- | --- | --- | --- |
+| Prometheus externo | DEV | `https://hotel-prometheus-dev.onrender.com` | `observability/prometheus/Dockerfile.render`, `observability/prometheus/prometheus-render-dev.yml` |
+| Grafana externo | DEV | `https://hotel-grafana-dev.onrender.com` | `observability/grafana/Dockerfile.render`, `observability/grafana/provisioning-external/**`, `observability/grafana/dashboards/**` |
+| Prometheus externo | HOMOL | `https://hotel-prometheus-homol.onrender.com` | `observability/prometheus/Dockerfile.render-homol`, `observability/prometheus/prometheus-render-homol.yml` |
+| Grafana externo | HOMOL | `https://hotel-grafana-homol.onrender.com` | `observability/grafana/Dockerfile.render`, `observability/grafana/provisioning-external/**`, `observability/grafana/dashboards/**` |
 
-O Prometheus externo coleta os endpoints publicos DEV:
+O Prometheus externo DEV coleta os endpoints publicos DEV:
 
 ```text
 https://hosped-gateway-dev.onrender.com/actuator/prometheus
@@ -462,7 +464,15 @@ https://hosped-users-dev.onrender.com/actuator/prometheus
 https://hosped-pagamento-dev.onrender.com/actuator/prometheus
 ```
 
-Criacao manual no Render:
+O Prometheus externo HOMOL coleta os endpoints publicos HOMOL:
+
+```text
+https://hosped-reserva-homol.onrender.com/actuator/prometheus
+https://hosped-quarto-homol.onrender.com/actuator/prometheus
+https://hotel-microservicos.onrender.com/actuator/prometheus
+```
+
+Criacao manual no Render (DEV):
 
 1. Crie um Web Service `hotel-prometheus-dev` a partir deste repositorio.
 2. Configure Dockerfile path como `observability/prometheus/Dockerfile.render`.
@@ -479,16 +489,40 @@ GF_SECURITY_ADMIN_PASSWORD=<senha-admin>
 PROMETHEUS_DATASOURCE_URL=https://hotel-prometheus-dev.onrender.com
 ```
 
-O Grafana externo provisiona automaticamente o datasource `Prometheus` e o dashboard `Hotel Microservices`. Se os nomes reais dos servicos Render forem diferentes dos documentados, atualize `observability/prometheus/prometheus-render-dev.yml` antes do deploy.
+Criacao manual no Render (HOMOL):
 
-Validacao externa:
+1. Crie um Web Service `hotel-prometheus-homol` a partir deste repositorio.
+2. Configure Dockerfile path como `observability/prometheus/Dockerfile.render-homol`.
+3. Configure `PORT=10000`.
+4. Crie um Web Service `hotel-grafana-homol` a partir deste repositorio.
+5. Configure Dockerfile path como `observability/grafana/Dockerfile.render`.
+6. Configure variaveis do Grafana:
+
+```text
+PORT=10000
+GF_SERVER_HTTP_PORT=10000
+GF_SECURITY_ADMIN_USER=<usuario-admin>
+GF_SECURITY_ADMIN_PASSWORD=<senha-admin>
+PROMETHEUS_DATASOURCE_URL=https://hotel-prometheus-homol.onrender.com
+```
+
+O Grafana externo provisiona automaticamente o datasource `Prometheus` e o dashboard `Hotel Microservices`.
+
+Validacao externa DEV:
 
 ```bash
 curl https://hotel-prometheus-dev.onrender.com/-/ready
 curl https://hotel-prometheus-dev.onrender.com/api/v1/targets
 ```
 
-No Grafana externo, acesse `https://hotel-grafana-dev.onrender.com`, faca login com o usuario/senha configurados e abra:
+Validacao externa HOMOL:
+
+```bash
+curl https://hotel-prometheus-homol.onrender.com/-/ready
+curl https://hotel-prometheus-homol.onrender.com/api/v1/targets
+```
+
+No Grafana HOMOL, acesse `https://hotel-grafana-homol.onrender.com`, faca login com o usuario/senha configurados e abra:
 
 ```text
 Dashboards > Hotel Microservices > Hotel Microservices
@@ -537,6 +571,14 @@ curl https://hosped-pagamento-dev.onrender.com/actuator/prometheus
 curl https://reserva-service-dev.onrender.com/actuator/prometheus
 ```
 
+Validar endpoints HOMOL no Render:
+
+```bash
+curl https://hotel-microservicos.onrender.com/actuator/health
+curl https://hosped-quarto-homol.onrender.com/actuator/health
+curl https://hosped-reserva-homol.onrender.com/actuator/health
+```
+
 Validar Swagger DEV no Render:
 
 ```text
@@ -577,15 +619,13 @@ curl -i http://localhost:8083/api-docs
 | Semantic Versioning | `VERSION`, POMs `1.0.0-SNAPSHOT`, tags `v*.*.*` e regras documentadas. |
 | Dependabot | `.github/dependabot.yml` cobre Maven, Actions, Docker e Compose. |
 | GitHub Secrets | Secrets esperados documentados e usados nos workflows. |
-| Prometheus e Grafana | Compose local e configuracao externa Render-ready para Prometheus/Grafana, com datasource e dashboard provisionados. |
+| Prometheus e Grafana | Compose local e configuracao externa Render-ready para Prometheus/Grafana DEV e HOMOL, com datasource e dashboard provisionados. |
 | Pipeline separado por microsservico | Cinco workflows especificos criados. |
 | README | Este documento descreve arquitetura, execucao, CI/CD, secrets, ambientes e entregaveis. |
-| URLs DEV/HOMOL | URLs DEV documentadas; URLs HOMOL ficam como padrao esperado para a pessoa responsavel por HOMOL. |
-| Dashboards | Dashboard `Hotel Microservices` provisionado no Grafana. |
+| URLs DEV/HOMOL | URLs DEV e HOMOL documentadas para pagamento, quarto e reserva. |
+| Dashboards | Dashboard `Hotel Microservices` provisionado no Grafana DEV e HOMOL. |
 
 ## Pendencias Externas
 
 - Manter `SONAR_TOKEN`, `SONAR_HOST_URL`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*` configurados no GitHub para publicar os relatorios Sonar na branch `main`.
-- Criar os Web Services externos `hotel-prometheus-dev` e `hotel-grafana-dev` no Render, caso a observabilidade precise estar acessivel publicamente.
-- Concluir configuracao HOMOL em `main`, incluindo services Render, deploy hooks HOMOL e variaveis runtime HOMOL.
 - Manter credenciais reais fora do repositorio, usando GitHub Actions Secrets e Environment Variables do Render.
