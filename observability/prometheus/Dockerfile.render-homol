@@ -1,0 +1,8 @@
+FROM prom/prometheus:v2.54.1
+
+COPY observability/prometheus/prometheus-render-homol.yml /etc/prometheus/prometheus.yml
+
+EXPOSE 9090 10000
+
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.listen-address=0.0.0.0:${PORT:-9090} --web.enable-lifecycle"]
