@@ -9,11 +9,6 @@ on:
       - "feature/**"
     tags:
       - "v*.*.*"
-    paths:
-      - "Hosped-users/**"
-      - ".github/workflows/hosped-users.yml"
-      - ".github/workflows/_java-service-ci-cd.yml"
-      - "VERSION"
   pull_request:
     branches:
       - main

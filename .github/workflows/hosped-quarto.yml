@@ -9,11 +9,6 @@ on:
       - "feature/**"
     tags:
       - "v*.*.*"
-    paths:
-      - "Hosped-quarto/**"
-      - ".github/workflows/hosped-quarto.yml"
-      - ".github/workflows/_java-service-ci-cd.yml"
-      - "VERSION"
   pull_request:
     branches:
       - main
