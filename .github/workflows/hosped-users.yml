@@ -1,4 +1,4 @@
-name: CI/CD - Hosped Users
+name: CI/CD - Usuarios Hosped
 
 on:
   workflow_dispatch:
@@ -9,11 +9,6 @@ on:
       - "feature/**"
     tags:
       - "v*.*.*"
-    paths:
-      - "Hosped-users/**"
-      - ".github/workflows/hosped-users.yml"
-      - ".github/workflows/_java-service-ci-cd.yml"
-      - "VERSION"
   pull_request:
     branches:
       - main
@@ -27,7 +22,7 @@ jobs:
   service:
     uses: ./.github/workflows/_java-service-ci-cd.yml
     with:
-      service_name: Hosped Users
+      service_name: Usuarios Hosped
       service_path: Hosped-users
       docker_image: hosped-users
       dockerhub_namespace: ${{ vars.DOCKERHUB_NAMESPACE }}

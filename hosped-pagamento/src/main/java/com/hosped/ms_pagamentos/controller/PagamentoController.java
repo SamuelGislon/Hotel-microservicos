@@ -44,14 +44,14 @@ public class PagamentoController {
         return ResponseEntity.noContent().build();
     }
 
-    // endpoint que o botão do email vai chamar
+    // Usado pelo link de confirmação enviado por e-mail.
     @GetMapping("/pagar/{id}")
     public ResponseEntity<String> confirmarPagamento(@PathVariable String id) {
         pagamentoService.confirmarPagamento(id);
         return ResponseEntity.ok("Pagamento confirmado! Obrigado, sua reserva está garantida.");
     }
 
-    // endpoint para simular o evento reserva.criada via Postman
+    // Atalho para testes manuais de integração.
     @PostMapping("/teste/simular-reserva")
     public ResponseEntity<String> simularReserva(@RequestBody com.hosped.ms_pagamentos.dto.ReservaEventoDTO dto) {
         pagamentoService.processarReserva(dto);

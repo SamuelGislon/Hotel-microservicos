@@ -1,6 +1,6 @@
-# Hotel Microservices - TP2 DevOps
+# Microsservicos de Hotel - TP2 DevOps
 
-Sistema academico de gestao de hotel em arquitetura de microsservicos. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, Sonar, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
+Sistema academico de gestao de hotel em arquitetura de microsservicos, desenvolvido por Samuel Gislon, Lucas Jacinto e Nicoli Zimmermann estudantes da UDESC. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, SonarCloud, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
 
 ## Arquitetura
 
@@ -138,14 +138,14 @@ Todos chamam o workflow reutilizavel `_java-service-ci-cd.yml`, que executa:
 2. setup Java 21;
 3. cache Maven;
 4. `mvn -B clean verify`;
-5. analise SonarCloud/SonarQube somente na branch `main`, quando `SONAR_TOKEN`, project key e organizacao estiverem configurados;
+5. analise SonarCloud somente na branch `main`, quando `SONAR_TOKEN`, project key e organizacao estiverem configurados;
 6. build da imagem Docker;
 7. push para Docker Hub quando `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` existirem;
 8. deploy Render por deploy hook em `develop` e `main`.
 
-### SonarCloud ou SonarQube
+### SonarCloud
 
-A analise fica no step `Analyze with SonarQube or SonarCloud` do workflow reutilizavel `.github/workflows/_java-service-ci-cd.yml`. Cada workflow de microsservico passa sua propria `SONAR_PROJECT_KEY_*`, entao a analise roda separadamente para:
+A analise fica na etapa `Analisar com SonarCloud` do workflow reutilizavel `.github/workflows/_java-service-ci-cd.yml`. Cada workflow de microsservico passa sua propria `SONAR_PROJECT_KEY_*`, entao a analise roda separadamente para:
 
 - `Hosped-users`;
 - `Hosped-quarto`;
@@ -153,25 +153,26 @@ A analise fica no step `Analyze with SonarQube or SonarCloud` do workflow reutil
 - `reserva-service`;
 - `hosped-gateway`.
 
-A analise SonarCloud esta integrada aos pipelines, porem, por limitacao do plano gratuito, o dashboard visivel e mantido apenas na branch `main`. Por isso, o workflow executa Sonar somente quando o ref atual e a branch `main`. A branch `develop` continua executando build, testes, Docker, publicacao de imagem e deploy DEV, mas pula a analise SonarCloud com uma mensagem clara no log. Para validacao academica, a branch `main` contem a analise visivel no SonarCloud e representa HOMOL/release conforme o Git Flow. Nao sera usado upgrade pago do SonarCloud.
+A analise SonarCloud esta integrada aos pipelines, porem, por limitacao do plano gratuito, o dashboard visivel e mantido apenas na branch `main`. Por isso, o workflow executa SonarCloud somente quando o ref atual e a branch `main`. A branch `develop` continua executando build, testes, Docker, publicacao de imagem e deploy DEV, mas pula a analise SonarCloud com uma mensagem clara no log. Para validacao academica, a branch `main` contem a analise visivel no SonarCloud e representa HOMOL/release conforme o Git Flow. Nao sera usado upgrade pago do SonarCloud.
 
 O comando usado pelo pipeline e:
 
 ```bash
-mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar \
   -Dsonar.projectKey=<project-key> \
   -Dsonar.projectName=<service-name> \
   -Dsonar.host.url=<sonar-host-url> \
-  -Dsonar.token=<sonar-token> \
-  -Dsonar.organization=<sonar-organization>
+  -Dsonar.organization=<sonar-organization> \
+  -Dsonar.scanner.skipJreProvisioning=true
 ```
 
-Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. Na `main`, se `SONAR_TOKEN`, project key ou `SONAR_ORGANIZATION` estiverem ausentes, o workflow registra um warning claro e pula somente a analise Sonar, mantendo build e testes executados.
+O token nao e passado na linha de comando; o scanner Maven usa o GitHub Secret `SONAR_TOKEN` exposto como variavel de ambiente. Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. O parametro `sonar.scanner.skipJreProvisioning=true` usa o Java 21 ja configurado no GitHub Actions e evita falha de permissao ao consultar metadados de JRE no SonarCloud.
+
+A etapa executa ate 3 tentativas da analise. Isso evita falhas intermitentes de API do SonarCloud, como erro `403` temporario ao baixar metadados ou o scanner engine. Se a terceira tentativa falhar, o pipeline para e indica para conferir `SONAR_TOKEN`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*`.
 
 Resultados:
 
 - SonarCloud: acesse `https://sonarcloud.io/projects`, abra o projeto configurado por `SONAR_PROJECT_KEY_*` e consulte o dashboard da branch `main`.
-- SonarQube proprio: acesse a URL definida em `SONAR_HOST_URL` e abra o projeto correspondente.
 
 Na `develop`, o log esperado e um notice informando que a analise foi pulada por causa da limitacao do plano gratuito do SonarCloud. Isso nao invalida o pipeline DEV.
 
@@ -266,17 +267,19 @@ Credenciais de banco, RabbitMQ, JWT e SMTP devem ser configuradas no Render como
 
 ## Render DEV e HOMOL
 
-Crie dois servicos Render para cada microsservico: um DEV e um HOMOL. Configure cada servico para usar imagem Docker externa e gere um deploy hook.
+Configure os servicos Render por ambiente usando imagem Docker externa e deploy hook. O ambiente DEV possui os cinco microsservicos principais. No ambiente HOMOL validado nesta entrega, estao implantados pagamento, quarto e reserva; users e gateway nao foram criados em HOMOL.
 
 URLs Render:
 
 | Servico | DEV | HOMOL |
 | --- | --- | --- |
-| Gateway | `https://hosped-gateway-dev.onrender.com` | `https://hosped-gateway-homol.onrender.com` |
-| Reserva | `https://reserva-service-dev.onrender.com` | `https://reserva-service-homol.onrender.com` |
+| Gateway | `https://hosped-gateway-dev.onrender.com` | Nao implantado em HOMOL |
+| Reserva | `https://reserva-service-dev.onrender.com` | `https://hosped-reserva-homol.onrender.com` |
 | Quarto | `https://hosped-quarto-dev.onrender.com` | `https://hosped-quarto-homol.onrender.com` |
-| Users | `https://hosped-users-dev.onrender.com` | `https://hosped-users-homol.onrender.com` |
-| Pagamento | `https://hosped-pagamento-dev.onrender.com` | `https://hosped-pagamento-homol.onrender.com` |
+| Users | `https://hosped-users-dev.onrender.com` | Nao implantado em HOMOL |
+| Pagamento | `https://hosped-pagamento-dev.onrender.com` | `https://hotel-microservicos.onrender.com` |
+
+Observacao: o servico Render `hosped-pagamento-homol` manteve a URL publica `https://hotel-microservicos.onrender.com`.
 
 O workflow chama o deploy hook com `imgURL=<imagem-publicada-no-Docker-Hub>`.
 
@@ -303,11 +306,9 @@ hosped-quarto-dev
 hosped-pagamento-dev
 reserva-service-dev
 hosped-gateway-dev
-hosped-users-homol
 hosped-quarto-homol
 hosped-pagamento-homol
-reserva-service-homol
-hosped-gateway-homol
+hosped-reserva-homol
 ```
 
 Localmente, o Docker Compose mapeia portas fixas como `8080`, `8081`, `8083`, `8084` e `8085`; no Render, todos os containers devem escutar a porta configurada por `PORT`.
@@ -434,7 +435,7 @@ Prometheus coleta:
 - `hosped-users:8080/actuator/prometheus`
 - `hosped-pagamento:8080/actuator/prometheus`
 
-Grafana provisiona automaticamente o datasource Prometheus e o dashboard `Hotel Microservices`, com paineis para:
+Grafana provisiona automaticamente o datasource Prometheus e o dashboard `Microsservicos do Hotel`, com paineis para:
 
 - status dos servicos;
 - requisicoes HTTP;
@@ -447,12 +448,14 @@ Grafana provisiona automaticamente o datasource Prometheus e o dashboard `Hotel 
 
 Para permitir acesso sem depender do ambiente local, a solucao preparada e hospedar Prometheus e Grafana como Web Services no Render:
 
-| Ferramenta | URL DEV sugerida | Arquivos |
-| --- | --- | --- |
-| Prometheus externo | `https://hotel-prometheus-dev.onrender.com` | `observability/prometheus/Dockerfile.render`, `observability/prometheus/prometheus-render-dev.yml` |
-| Grafana externo | `https://hotel-grafana-dev.onrender.com` | `observability/grafana/Dockerfile.render`, `observability/grafana/provisioning-external/**`, `observability/grafana/dashboards/**` |
+| Ferramenta | Ambiente | URL | Arquivos |
+| --- | --- | --- | --- |
+| Prometheus externo | DEV | `https://hotel-prometheus-dev.onrender.com` | `observability/prometheus/Dockerfile.render`, `observability/prometheus/prometheus-render-dev.yml` |
+| Grafana externo | DEV | `https://hotel-grafana-dev.onrender.com` | `observability/grafana/Dockerfile.render`, `observability/grafana/provisioning-external/**`, `observability/grafana/dashboards/**` |
+| Prometheus externo | HOMOL | `https://hotel-prometheus-homol.onrender.com` | `observability/prometheus/Dockerfile.render-homol`, `observability/prometheus/prometheus-render-homol.yml` |
+| Grafana externo | HOMOL | `https://hotel-grafana-homol.onrender.com` | `observability/grafana/Dockerfile.render`, `observability/grafana/provisioning-external/**`, `observability/grafana/dashboards/**` |
 
-O Prometheus externo coleta os endpoints publicos DEV:
+O Prometheus externo DEV coleta os endpoints publicos DEV:
 
 ```text
 https://hosped-gateway-dev.onrender.com/actuator/prometheus
@@ -462,7 +465,15 @@ https://hosped-users-dev.onrender.com/actuator/prometheus
 https://hosped-pagamento-dev.onrender.com/actuator/prometheus
 ```
 
-Criacao manual no Render:
+O Prometheus externo HOMOL coleta os endpoints publicos HOMOL:
+
+```text
+https://hosped-reserva-homol.onrender.com/actuator/prometheus
+https://hosped-quarto-homol.onrender.com/actuator/prometheus
+https://hotel-microservicos.onrender.com/actuator/prometheus
+```
+
+Criacao manual no Render (DEV):
 
 1. Crie um Web Service `hotel-prometheus-dev` a partir deste repositorio.
 2. Configure Dockerfile path como `observability/prometheus/Dockerfile.render`.
@@ -479,19 +490,43 @@ GF_SECURITY_ADMIN_PASSWORD=<senha-admin>
 PROMETHEUS_DATASOURCE_URL=https://hotel-prometheus-dev.onrender.com
 ```
 
-O Grafana externo provisiona automaticamente o datasource `Prometheus` e o dashboard `Hotel Microservices`. Se os nomes reais dos servicos Render forem diferentes dos documentados, atualize `observability/prometheus/prometheus-render-dev.yml` antes do deploy.
+Criacao manual no Render (HOMOL):
 
-Validacao externa:
+1. Crie um Web Service `hotel-prometheus-homol` a partir deste repositorio.
+2. Configure Dockerfile path como `observability/prometheus/Dockerfile.render-homol`.
+3. Configure `PORT=10000`.
+4. Crie um Web Service `hotel-grafana-homol` a partir deste repositorio.
+5. Configure Dockerfile path como `observability/grafana/Dockerfile.render`.
+6. Configure variaveis do Grafana:
+
+```text
+PORT=10000
+GF_SERVER_HTTP_PORT=10000
+GF_SECURITY_ADMIN_USER=<usuario-admin>
+GF_SECURITY_ADMIN_PASSWORD=<senha-admin>
+PROMETHEUS_DATASOURCE_URL=https://hotel-prometheus-homol.onrender.com
+```
+
+O Grafana externo provisiona automaticamente o datasource `Prometheus` e o dashboard `Microsservicos do Hotel`.
+
+Validacao externa DEV:
 
 ```bash
 curl https://hotel-prometheus-dev.onrender.com/-/ready
 curl https://hotel-prometheus-dev.onrender.com/api/v1/targets
 ```
 
-No Grafana externo, acesse `https://hotel-grafana-dev.onrender.com`, faca login com o usuario/senha configurados e abra:
+Validacao externa HOMOL:
+
+```bash
+curl https://hotel-prometheus-homol.onrender.com/-/ready
+curl https://hotel-prometheus-homol.onrender.com/api/v1/targets
+```
+
+No Grafana HOMOL, acesse `https://hotel-grafana-homol.onrender.com`, faca login com o usuario/senha configurados e abra:
 
 ```text
-Dashboards > Hotel Microservices > Hotel Microservices
+Dashboards > Microsservicos do Hotel > Microsservicos do Hotel
 ```
 
 ## Validacao Manual
@@ -537,6 +572,18 @@ curl https://hosped-pagamento-dev.onrender.com/actuator/prometheus
 curl https://reserva-service-dev.onrender.com/actuator/prometheus
 ```
 
+Validar endpoints HOMOL no Render:
+
+```bash
+curl https://hotel-microservicos.onrender.com/actuator/health
+curl https://hosped-quarto-homol.onrender.com/actuator/health
+curl https://hosped-reserva-homol.onrender.com/actuator/health
+
+curl https://hotel-microservicos.onrender.com/actuator/prometheus
+curl https://hosped-quarto-homol.onrender.com/actuator/prometheus
+curl https://hosped-reserva-homol.onrender.com/actuator/prometheus
+```
+
 Validar Swagger DEV no Render:
 
 ```text
@@ -551,10 +598,16 @@ O Gateway nao possui Swagger proprio.
 Validar HOMOL sem Swagger:
 
 ```bash
-SPRING_PROFILES_ACTIVE=homol mvn spring-boot:run
-curl -i http://localhost:8083/swagger-ui.html
-curl -i http://localhost:8083/api-docs
+curl -I https://hotel-microservicos.onrender.com/swagger-ui.html
+curl -I https://hosped-quarto-homol.onrender.com/swagger-ui.html
+curl -I https://hosped-reserva-homol.onrender.com/swagger-ui.html
+
+curl -I https://hotel-microservicos.onrender.com/api-docs
+curl -I https://hosped-quarto-homol.onrender.com/api-docs
+curl -I https://hosped-reserva-homol.onrender.com/api-docs
 ```
+
+Esperado em HOMOL: `404` para `/swagger-ui.html` e `/api-docs`.
 
 ## Atendimento aos requisitos do Trabalho Pratico 2
 
@@ -564,7 +617,7 @@ curl -i http://localhost:8083/api-docs
 | CI com GitHub Actions | Criados workflows individuais por microsservico. |
 | Build automatizado | `mvn clean verify` em cada pipeline. |
 | Testes automatizados | Testes Maven executados em cada pipeline. |
-| SonarQube/SonarCloud | Step dedicado no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
+| SonarCloud | Etapa dedicada no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
 | CD automatico | Render deploy hooks em `develop` e `main`. |
 | DEV em `develop` | `develop` publica tag `dev-*` e aciona hook DEV. |
 | HOMOL em `main` | `main` publica tag `homol-*` e aciona hook HOMOL. |
@@ -577,15 +630,13 @@ curl -i http://localhost:8083/api-docs
 | Semantic Versioning | `VERSION`, POMs `1.0.0-SNAPSHOT`, tags `v*.*.*` e regras documentadas. |
 | Dependabot | `.github/dependabot.yml` cobre Maven, Actions, Docker e Compose. |
 | GitHub Secrets | Secrets esperados documentados e usados nos workflows. |
-| Prometheus e Grafana | Compose local e configuracao externa Render-ready para Prometheus/Grafana, com datasource e dashboard provisionados. |
+| Prometheus e Grafana | Compose local e configuracao externa Render-ready para Prometheus/Grafana DEV e HOMOL, com datasource e dashboard provisionados. |
 | Pipeline separado por microsservico | Cinco workflows especificos criados. |
 | README | Este documento descreve arquitetura, execucao, CI/CD, secrets, ambientes e entregaveis. |
-| URLs DEV/HOMOL | URLs DEV documentadas; URLs HOMOL ficam como padrao esperado para a pessoa responsavel por HOMOL. |
-| Dashboards | Dashboard `Hotel Microservices` provisionado no Grafana. |
+| URLs DEV/HOMOL | URLs DEV e HOMOL documentadas para pagamento, quarto e reserva. |
+| Dashboards | Dashboard `Microsservicos do Hotel` provisionado no Grafana DEV e HOMOL. |
 
 ## Pendencias Externas
 
 - Manter `SONAR_TOKEN`, `SONAR_HOST_URL`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*` configurados no GitHub para publicar os relatorios Sonar na branch `main`.
-- Criar os Web Services externos `hotel-prometheus-dev` e `hotel-grafana-dev` no Render, caso a observabilidade precise estar acessivel publicamente.
-- Concluir configuracao HOMOL em `main`, incluindo services Render, deploy hooks HOMOL e variaveis runtime HOMOL.
 - Manter credenciais reais fora do repositorio, usando GitHub Actions Secrets e Environment Variables do Render.

@@ -23,27 +23,23 @@ public class UserController {
         @Autowired
         private UserService userService;
 
-        // Livre — qualquer um pode fazer login
         @PostMapping("/auth/login")
         public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
             return ResponseEntity.ok(userService.login(request));
         }
 
-        // Apenas ADMINISTRADOR
         @PreAuthorize("hasRole('ADMINISTRADOR')")
         @PostMapping("/users")
         public ResponseEntity<UserResponse> cadastrar(@Valid @RequestBody CadastrarFuncionarioRequest user) {
             return ResponseEntity.status(HttpStatus.CREATED).body(userService.cadastrar(user));
         }
 
-        // Apenas ADMINISTRADOR
         @PreAuthorize("hasRole('ADMINISTRADOR')")
         @GetMapping("/users")
         public ResponseEntity<List<UserResponse>> listarTodos() {
             return ResponseEntity.ok(userService.listarTodos());
         }
 
-        // Apenas ADMINISTRADOR
         @PreAuthorize("hasRole('ADMINISTRADOR')")
         @GetMapping("/users/{id}")
         public ResponseEntity<UserResponse> buscarPorId(@PathVariable UUID id) {
@@ -61,7 +57,6 @@ public class UserController {
             return ResponseEntity.ok(userService.alterarSenha(id, request, authentication));
         }
 
-        // Apenas ADMINISTRADOR
         @PreAuthorize("hasRole('ADMINISTRADOR')")
         @DeleteMapping("/users/{id}")
         public ResponseEntity<Void> excluir(@PathVariable UUID id) {

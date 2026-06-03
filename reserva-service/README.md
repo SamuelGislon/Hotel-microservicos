@@ -1,6 +1,6 @@
-# reserva-service
+# Reserva Service
 
-Microsserviço backend em Java/Spring Boot para gestão de hóspedes e reservas em um sistema de hotelaria orientado a microsserviços. O serviço funciona sozinho, possui banco próprio, API própria, testes próprios e demonstra explicitamente dois padrões importantes de arquitetura distribuída:
+Microsserviço backend em Java/Spring Boot para gestão de hóspedes e reservas em um sistema de hotelaria orientado a microsserviços, desenvolvido em contexto acadêmico por estudantes de Engenharia de Software da UDESC. O serviço funciona sozinho, possui banco próprio, API própria, testes próprios e demonstra explicitamente dois padrões importantes de arquitetura distribuída:
 
 - `Event-Driven` com RabbitMQ
 - `Circuit Breaker` com Resilience4j
