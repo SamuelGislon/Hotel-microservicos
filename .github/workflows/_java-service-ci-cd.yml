@@ -78,7 +78,7 @@ jobs:
           set -euo pipefail
           mvn -B clean verify
 
-      - name: Analyze with SonarQube or SonarCloud
+      - name: Analyze with Sonar
         working-directory: ${{ inputs.service_path }}
         shell: bash
         run: |
@@ -114,12 +114,13 @@ jobs:
             "-Dsonar.projectName=${{ inputs.service_name }}"
             "-Dsonar.host.url=${sonar_host_url}"
             "-Dsonar.token=${SONAR_TOKEN}"
+            "-Dsonar.scanner.skipJreProvisioning=true"
           )
           if [ -n "${SONAR_ORGANIZATION}" ]; then
             sonar_args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
           fi
 
-          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "${sonar_args[@]}"
+          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar "${sonar_args[@]}"
 
       - name: Validate Docker Hub credentials
         if: ${{ github.event_name != 'pull_request' }}
