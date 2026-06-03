@@ -76,7 +76,7 @@
           "refId": "A"
         }
       ],
-      "title": "Service status",
+      "title": "Status dos servicos",
       "type": "stat"
     },
     {
@@ -115,7 +115,7 @@
           "refId": "A"
         }
       ],
-      "title": "HTTP requests",
+      "title": "Requisicoes HTTP",
       "type": "timeseries"
     },
     {
@@ -154,7 +154,7 @@
           "refId": "A"
         }
       ],
-      "title": "HTTP 5xx error ratio",
+      "title": "Taxa de erros HTTP 5xx",
       "type": "timeseries"
     },
     {
@@ -193,7 +193,7 @@
           "refId": "A"
         }
       ],
-      "title": "Average response time",
+      "title": "Tempo medio de resposta",
       "type": "timeseries"
     },
     {
@@ -237,7 +237,7 @@
           "refId": "B"
         }
       ],
-      "title": "JVM memory used",
+      "title": "Memoria JVM utilizada",
       "type": "timeseries"
     },
     {
@@ -276,7 +276,7 @@
           "refId": "A"
         }
       ],
-      "title": "Process CPU usage",
+      "title": "Uso de CPU do processo",
       "type": "timeseries"
     }
   ],
@@ -296,7 +296,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Hotel Microservices",
+  "title": "Microsservicos do Hotel",
   "uid": "hotel-microservices",
   "version": 1,
   "weekStart": ""

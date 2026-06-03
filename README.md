@@ -1,6 +1,6 @@
-# Hotel Microservices - TP2 DevOps
+# Microsservicos de Hotel - TP2 DevOps
 
-Sistema academico de gestao de hotel em arquitetura de microsservicos. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, Sonar, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
+Sistema academico de gestao de hotel em arquitetura de microsservicos, desenvolvido por estudantes de Engenharia de Software da UDESC. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, SonarCloud, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
 
 ## Arquitetura
 
@@ -145,7 +145,7 @@ Todos chamam o workflow reutilizavel `_java-service-ci-cd.yml`, que executa:
 
 ### SonarCloud
 
-A analise fica no step `Analyze with SonarCloud` do workflow reutilizavel `.github/workflows/_java-service-ci-cd.yml`. Cada workflow de microsservico passa sua propria `SONAR_PROJECT_KEY_*`, entao a analise roda separadamente para:
+A analise fica na etapa `Analisar com SonarCloud` do workflow reutilizavel `.github/workflows/_java-service-ci-cd.yml`. Cada workflow de microsservico passa sua propria `SONAR_PROJECT_KEY_*`, entao a analise roda separadamente para:
 
 - `Hosped-users`;
 - `Hosped-quarto`;
@@ -168,7 +168,7 @@ mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar \
 
 O token nao e passado na linha de comando; o scanner Maven usa o GitHub Secret `SONAR_TOKEN` exposto como variavel de ambiente. Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. O parametro `sonar.scanner.skipJreProvisioning=true` usa o Java 21 ja configurado no GitHub Actions e evita falha de permissao ao consultar metadados de JRE no SonarCloud.
 
-O step executa ate 3 tentativas da analise. Isso evita falhas intermitentes de API do SonarCloud, como erro `403` temporario ao baixar metadata ou scanner engine. Se a terceira tentativa falhar, o pipeline para e indica para conferir `SONAR_TOKEN`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*`.
+A etapa executa ate 3 tentativas da analise. Isso evita falhas intermitentes de API do SonarCloud, como erro `403` temporario ao baixar metadados ou o scanner engine. Se a terceira tentativa falhar, o pipeline para e indica para conferir `SONAR_TOKEN`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*`.
 
 Resultados:
 
@@ -435,7 +435,7 @@ Prometheus coleta:
 - `hosped-users:8080/actuator/prometheus`
 - `hosped-pagamento:8080/actuator/prometheus`
 
-Grafana provisiona automaticamente o datasource Prometheus e o dashboard `Hotel Microservices`, com paineis para:
+Grafana provisiona automaticamente o datasource Prometheus e o dashboard `Microsservicos do Hotel`, com paineis para:
 
 - status dos servicos;
 - requisicoes HTTP;
@@ -507,7 +507,7 @@ GF_SECURITY_ADMIN_PASSWORD=<senha-admin>
 PROMETHEUS_DATASOURCE_URL=https://hotel-prometheus-homol.onrender.com
 ```
 
-O Grafana externo provisiona automaticamente o datasource `Prometheus` e o dashboard `Hotel Microservices`.
+O Grafana externo provisiona automaticamente o datasource `Prometheus` e o dashboard `Microsservicos do Hotel`.
 
 Validacao externa DEV:
 
@@ -526,7 +526,7 @@ curl https://hotel-prometheus-homol.onrender.com/api/v1/targets
 No Grafana HOMOL, acesse `https://hotel-grafana-homol.onrender.com`, faca login com o usuario/senha configurados e abra:
 
 ```text
-Dashboards > Hotel Microservices > Hotel Microservices
+Dashboards > Microsservicos do Hotel > Microsservicos do Hotel
 ```
 
 ## Validacao Manual
@@ -607,7 +607,7 @@ curl -i http://localhost:8083/api-docs
 | CI com GitHub Actions | Criados workflows individuais por microsservico. |
 | Build automatizado | `mvn clean verify` em cada pipeline. |
 | Testes automatizados | Testes Maven executados em cada pipeline. |
-| SonarCloud | Step dedicado no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
+| SonarCloud | Etapa dedicada no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
 | CD automatico | Render deploy hooks em `develop` e `main`. |
 | DEV em `develop` | `develop` publica tag `dev-*` e aciona hook DEV. |
 | HOMOL em `main` | `main` publica tag `homol-*` e aciona hook HOMOL. |
@@ -624,7 +624,7 @@ curl -i http://localhost:8083/api-docs
 | Pipeline separado por microsservico | Cinco workflows especificos criados. |
 | README | Este documento descreve arquitetura, execucao, CI/CD, secrets, ambientes e entregaveis. |
 | URLs DEV/HOMOL | URLs DEV e HOMOL documentadas para pagamento, quarto e reserva. |
-| Dashboards | Dashboard `Hotel Microservices` provisionado no Grafana DEV e HOMOL. |
+| Dashboards | Dashboard `Microsservicos do Hotel` provisionado no Grafana DEV e HOMOL. |
 
 ## Pendencias Externas
 

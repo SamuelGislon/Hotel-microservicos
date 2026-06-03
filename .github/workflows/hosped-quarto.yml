@@ -1,4 +1,4 @@
-name: CI/CD - Hosped Quarto
+name: CI/CD - Quarto Hosped
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
   service:
     uses: ./.github/workflows/_java-service-ci-cd.yml
     with:
-      service_name: Hosped Quarto
+      service_name: Quarto Hosped
       service_path: Hosped-quarto
       docker_image: hosped-quarto
       dockerhub_namespace: ${{ vars.DOCKERHUB_NAMESPACE }}

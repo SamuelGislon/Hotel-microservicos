@@ -1,4 +1,4 @@
-name: CI/CD - Hosped Gateway
+name: CI/CD - Gateway Hosped
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
   service:
     uses: ./.github/workflows/_java-service-ci-cd.yml
     with:
-      service_name: Hosped Gateway
+      service_name: Gateway Hosped
       service_path: hosped-gateway
       docker_image: hosped-gateway
       dockerhub_namespace: ${{ vars.DOCKERHUB_NAMESPACE }}

@@ -1,4 +1,4 @@
-name: CI/CD - Hosped Pagamento
+name: CI/CD - Pagamento Hosped
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
   service:
     uses: ./.github/workflows/_java-service-ci-cd.yml
     with:
-      service_name: Hosped Pagamento
+      service_name: Pagamento Hosped
       service_path: hosped-pagamento
       docker_image: hosped-pagamento
       dockerhub_namespace: ${{ vars.DOCKERHUB_NAMESPACE }}

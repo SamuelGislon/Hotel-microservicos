@@ -73,8 +73,6 @@ class PagamentoServiceTest {
         return p;
     }
 
-    // ───── processarReserva ─────
-
     @Test
     void processarReserva_calculaValorCorretamente() {
         ReservaEventoDTO evento = criarEvento();
@@ -123,8 +121,6 @@ class PagamentoServiceTest {
         assertNotNull(resultado.getDataExpiracao());
         assertTrue(resultado.getDataExpiracao().isAfter(LocalDateTime.now()));
     }
-
-    // ───── confirmarPagamento ─────
 
     @Test
     void confirmarPagamento_aprovaPagamentoPendente() {
@@ -187,8 +183,6 @@ class PagamentoServiceTest {
                 pagamentoService.confirmarPagamento("inexistente"));
     }
 
-    // ───── atualizarStatus ─────
-
     @Test
     void atualizarStatus_paraAprovado_enviEmailAprovado() {
         Pagamento pagamento = criarPagamentoPendente();
@@ -230,8 +224,6 @@ class PagamentoServiceTest {
                 pagamentoService.atualizarStatus("inexistente", StatusPagamento.APROVADO));
     }
 
-    // ───── buscarPorId ─────
-
     @Test
     void buscarPorId_retornaDtoCorreto() {
         Pagamento pagamento = criarPagamentoPendente();
@@ -251,8 +243,6 @@ class PagamentoServiceTest {
         assertThrows(ResponseStatusException.class, () ->
                 pagamentoService.buscarPorId("inexistente"));
     }
-
-    // ───── buscarPorReservaId ─────
 
     @Test
     void buscarPorReservaId_retornaListaCorreta() {
