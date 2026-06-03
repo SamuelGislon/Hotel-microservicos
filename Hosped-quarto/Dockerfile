@@ -4,7 +4,7 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn -B clean package -DskipTests
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=1.0.0
