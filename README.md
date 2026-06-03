@@ -1,6 +1,6 @@
 # Microsservicos de Hotel - TP2 DevOps
 
-Sistema academico de gestao de hotel em arquitetura de microsservicos, desenvolvido por Samuel Gislon, Lucas Jacinto e Nicoli Zimmermann estudantes da UDESC. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, SonarCloud, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
+Sistema academico de gestao de hotel em arquitetura de microsservicos, desenvolvido por Samuel Gislon, Lucas Jacinto e Nicoli Zimmermann estudantes da UDESC. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, SonarCloud, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana. teste
 
 ## Arquitetura
 
