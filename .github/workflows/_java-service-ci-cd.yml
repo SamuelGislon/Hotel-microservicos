@@ -113,14 +113,34 @@ jobs:
             "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
             "-Dsonar.projectName=${{ inputs.service_name }}"
             "-Dsonar.host.url=${sonar_host_url}"
-            "-Dsonar.token=${SONAR_TOKEN}"
             "-Dsonar.scanner.skipJreProvisioning=true"
           )
           if [ -n "${SONAR_ORGANIZATION}" ]; then
             sonar_args+=("-Dsonar.organization=${SONAR_ORGANIZATION}")
           fi
 
-          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar "${sonar_args[@]}"
+          sonar_command=(
+            mvn -B
+            org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar
+            "${sonar_args[@]}"
+          )
+
+          for attempt in 1 2 3; do
+            echo "Running SonarCloud analysis for ${{ inputs.service_name }} (attempt ${attempt}/3)."
+            if "${sonar_command[@]}"; then
+              exit 0
+            fi
+
+            status=$?
+            if [ "${attempt}" -eq 3 ]; then
+              echo "::error title=SonarCloud analysis failed::SonarCloud analysis failed after 3 attempts. Check SONAR_TOKEN permissions and SONAR_PROJECT_KEY for ${{ inputs.service_name }}."
+              exit "${status}"
+            fi
+
+            sleep_seconds=$((attempt * 30))
+            echo "::warning title=SonarCloud retry::SonarCloud analysis failed with exit code ${status}. Retrying in ${sleep_seconds}s because SonarCloud API responses can be transient."
+            sleep "${sleep_seconds}"
+          done
 
       - name: Validate Docker Hub credentials
         if: ${{ github.event_name != 'pull_request' }}

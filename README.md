@@ -138,14 +138,14 @@ Todos chamam o workflow reutilizavel `_java-service-ci-cd.yml`, que executa:
 2. setup Java 21;
 3. cache Maven;
 4. `mvn -B clean verify`;
-5. analise Sonar somente na branch `main`, quando `SONAR_TOKEN`, project key e organizacao estiverem configurados;
+5. analise SonarCloud somente na branch `main`, quando `SONAR_TOKEN`, project key e organizacao estiverem configurados;
 6. build da imagem Docker;
 7. push para Docker Hub quando `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` existirem;
 8. deploy Render por deploy hook em `develop` e `main`.
 
-### Sonar
+### SonarCloud
 
-A analise fica no step `Analyze with Sonar` do workflow reutilizavel `.github/workflows/_java-service-ci-cd.yml`. Cada workflow de microsservico passa sua propria `SONAR_PROJECT_KEY_*`, entao a analise roda separadamente para:
+A analise fica no step `Analyze with SonarCloud` do workflow reutilizavel `.github/workflows/_java-service-ci-cd.yml`. Cada workflow de microsservico passa sua propria `SONAR_PROJECT_KEY_*`, entao a analise roda separadamente para:
 
 - `Hosped-users`;
 - `Hosped-quarto`;
@@ -153,7 +153,7 @@ A analise fica no step `Analyze with Sonar` do workflow reutilizavel `.github/wo
 - `reserva-service`;
 - `hosped-gateway`.
 
-A analise Sonar esta integrada aos pipelines, porem, por limitacao do plano gratuito, o dashboard visivel e mantido apenas na branch `main`. Por isso, o workflow executa Sonar somente quando o ref atual e a branch `main`. A branch `develop` continua executando build, testes, Docker, publicacao de imagem e deploy DEV, mas pula a analise Sonar com uma mensagem clara no log. Para validacao academica, a branch `main` contem a analise visivel no Sonar e representa HOMOL/release conforme o Git Flow. Nao sera usado upgrade pago do Sonar.
+A analise SonarCloud esta integrada aos pipelines, porem, por limitacao do plano gratuito, o dashboard visivel e mantido apenas na branch `main`. Por isso, o workflow executa SonarCloud somente quando o ref atual e a branch `main`. A branch `develop` continua executando build, testes, Docker, publicacao de imagem e deploy DEV, mas pula a analise SonarCloud com uma mensagem clara no log. Para validacao academica, a branch `main` contem a analise visivel no SonarCloud e representa HOMOL/release conforme o Git Flow. Nao sera usado upgrade pago do SonarCloud.
 
 O comando usado pelo pipeline e:
 
@@ -162,18 +162,19 @@ mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar \
   -Dsonar.projectKey=<project-key> \
   -Dsonar.projectName=<service-name> \
   -Dsonar.host.url=<sonar-host-url> \
-  -Dsonar.token=<sonar-token> \
   -Dsonar.organization=<sonar-organization> \
   -Dsonar.scanner.skipJreProvisioning=true
 ```
 
-Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. O parametro `sonar.scanner.skipJreProvisioning=true` usa o Java 21 ja configurado no GitHub Actions e evita falha de permissao ao consultar metadados de JRE no Sonar. Na `main`, se `SONAR_TOKEN`, project key ou `SONAR_ORGANIZATION` estiverem ausentes, o workflow registra um warning claro e pula somente a analise Sonar, mantendo build e testes executados.
+O token nao e passado na linha de comando; o scanner Maven usa o GitHub Secret `SONAR_TOKEN` exposto como variavel de ambiente. Nao ha `sonar-project.properties` no repositorio porque o scanner Maven consegue inferir fontes, testes e bytecode a partir dos POMs de cada microsservico. O parametro `sonar.scanner.skipJreProvisioning=true` usa o Java 21 ja configurado no GitHub Actions e evita falha de permissao ao consultar metadados de JRE no SonarCloud.
+
+O step executa ate 3 tentativas da analise. Isso evita falhas intermitentes de API do SonarCloud, como erro `403` temporario ao baixar metadata ou scanner engine. Se a terceira tentativa falhar, o pipeline para e indica para conferir `SONAR_TOKEN`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*`.
 
 Resultados:
 
-- Sonar: acesse `https://sonarcloud.io/projects`, abra o projeto configurado por `SONAR_PROJECT_KEY_*` e consulte o dashboard da branch `main`.
+- SonarCloud: acesse `https://sonarcloud.io/projects`, abra o projeto configurado por `SONAR_PROJECT_KEY_*` e consulte o dashboard da branch `main`.
 
-Na `develop`, o log esperado e um notice informando que a analise foi pulada por causa da limitacao do plano gratuito do Sonar. Isso nao invalida o pipeline DEV.
+Na `develop`, o log esperado e um notice informando que a analise foi pulada por causa da limitacao do plano gratuito do SonarCloud. Isso nao invalida o pipeline DEV.
 
 ## Docker Hub e Tags
 
@@ -606,7 +607,7 @@ curl -i http://localhost:8083/api-docs
 | CI com GitHub Actions | Criados workflows individuais por microsservico. |
 | Build automatizado | `mvn clean verify` em cada pipeline. |
 | Testes automatizados | Testes Maven executados em cada pipeline. |
-| Sonar | Step dedicado no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
+| SonarCloud | Step dedicado no workflow reutilizavel; roda por microsservico somente na branch `main`, quando `SONAR_TOKEN` e vars Sonar existem. |
 | CD automatico | Render deploy hooks em `develop` e `main`. |
 | DEV em `develop` | `develop` publica tag `dev-*` e aciona hook DEV. |
 | HOMOL em `main` | `main` publica tag `homol-*` e aciona hook HOMOL. |
