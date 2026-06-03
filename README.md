@@ -1,6 +1,6 @@
 # Microsservicos de Hotel - TP2 DevOps
 
-Sistema academico de gestao de hotel em arquitetura de microsservicos, desenvolvido por estudantes de Engenharia de Software da UDESC. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, SonarCloud, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
+Sistema academico de gestao de hotel em arquitetura de microsservicos, desenvolvido por Samuel Gislon, Lucas Jacinto e Nicoli Zimmermann estudantes da UDESC. Esta entrega adapta o projeto para o Trabalho Pratico 2 de DevOps com Git Flow, CI/CD, Docker, SonarCloud, Render, Dependabot, versionamento semantico e observabilidade com Prometheus e Grafana.
 
 ## Arquitetura
 
@@ -267,17 +267,19 @@ Credenciais de banco, RabbitMQ, JWT e SMTP devem ser configuradas no Render como
 
 ## Render DEV e HOMOL
 
-Crie dois servicos Render para cada microsservico: um DEV e um HOMOL. Configure cada servico para usar imagem Docker externa e gere um deploy hook.
+Configure os servicos Render por ambiente usando imagem Docker externa e deploy hook. O ambiente DEV possui os cinco microsservicos principais. No ambiente HOMOL validado nesta entrega, estao implantados pagamento, quarto e reserva; users e gateway nao foram criados em HOMOL.
 
 URLs Render:
 
 | Servico | DEV | HOMOL |
 | --- | --- | --- |
-| Gateway | `https://hosped-gateway-dev.onrender.com` | - |
+| Gateway | `https://hosped-gateway-dev.onrender.com` | Nao implantado em HOMOL |
 | Reserva | `https://reserva-service-dev.onrender.com` | `https://hosped-reserva-homol.onrender.com` |
 | Quarto | `https://hosped-quarto-dev.onrender.com` | `https://hosped-quarto-homol.onrender.com` |
-| Users | `https://hosped-users-dev.onrender.com` | - |
+| Users | `https://hosped-users-dev.onrender.com` | Nao implantado em HOMOL |
 | Pagamento | `https://hosped-pagamento-dev.onrender.com` | `https://hotel-microservicos.onrender.com` |
+
+Observacao: o servico Render `hosped-pagamento-homol` manteve a URL publica `https://hotel-microservicos.onrender.com`.
 
 O workflow chama o deploy hook com `imgURL=<imagem-publicada-no-Docker-Hub>`.
 
@@ -304,11 +306,9 @@ hosped-quarto-dev
 hosped-pagamento-dev
 reserva-service-dev
 hosped-gateway-dev
-hosped-users-homol
 hosped-quarto-homol
 hosped-pagamento-homol
-reserva-service-homol
-hosped-gateway-homol
+hosped-reserva-homol
 ```
 
 Localmente, o Docker Compose mapeia portas fixas como `8080`, `8081`, `8083`, `8084` e `8085`; no Render, todos os containers devem escutar a porta configurada por `PORT`.
@@ -578,6 +578,10 @@ Validar endpoints HOMOL no Render:
 curl https://hotel-microservicos.onrender.com/actuator/health
 curl https://hosped-quarto-homol.onrender.com/actuator/health
 curl https://hosped-reserva-homol.onrender.com/actuator/health
+
+curl https://hotel-microservicos.onrender.com/actuator/prometheus
+curl https://hosped-quarto-homol.onrender.com/actuator/prometheus
+curl https://hosped-reserva-homol.onrender.com/actuator/prometheus
 ```
 
 Validar Swagger DEV no Render:
@@ -594,10 +598,16 @@ O Gateway nao possui Swagger proprio.
 Validar HOMOL sem Swagger:
 
 ```bash
-SPRING_PROFILES_ACTIVE=homol mvn spring-boot:run
-curl -i http://localhost:8083/swagger-ui.html
-curl -i http://localhost:8083/api-docs
+curl -I https://hotel-microservicos.onrender.com/swagger-ui.html
+curl -I https://hosped-quarto-homol.onrender.com/swagger-ui.html
+curl -I https://hosped-reserva-homol.onrender.com/swagger-ui.html
+
+curl -I https://hotel-microservicos.onrender.com/api-docs
+curl -I https://hosped-quarto-homol.onrender.com/api-docs
+curl -I https://hosped-reserva-homol.onrender.com/api-docs
 ```
+
+Esperado em HOMOL: `404` para `/swagger-ui.html` e `/api-docs`.
 
 ## Atendimento aos requisitos do Trabalho Pratico 2
 

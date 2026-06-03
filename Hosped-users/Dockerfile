@@ -9,7 +9,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=1.0.0
 LABEL org.opencontainers.image.title="Microsservico de Usuarios Hosped" \
-      org.opencontainers.image.description="Microsservico de usuarios do sistema de hotel desenvolvido por estudantes de Engenharia de Software da UDESC" \
+      org.opencontainers.image.description="Microsservico de usuarios do sistema de hotel desenvolvido por Samuel Gislon, Lucas Jacinto e Nicoli Zimmermann estudantes da UDESC" \
       org.opencontainers.image.source="https://github.com/SamuelGislon/Hotel-microservicos" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
