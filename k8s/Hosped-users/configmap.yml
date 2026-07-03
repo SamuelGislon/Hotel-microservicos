@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hosped-users-config
+  namespace: default
+data:
+  SERVER_PORT: "8085"
+  SPRING_APPLICATION_NAME: "ms-users"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/hosped_users"
+  SPRING_DATASOURCE_USERNAME: "postgres"
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+  APP_ENVIRONMENT: "LOCAL"
+  JWT_ISSUER: "hosped"
+  JWT_EXPIRATION: "86400000"
+  USERS_SEED_ADMIN_ENABLED: "true"
+  USERS_SEED_ADMIN_CPF: "00000000000"
+  USERS_SEED_ADMIN_NAME: "Administrador Local"

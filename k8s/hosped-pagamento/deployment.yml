@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hosped-pagamento
+  namespace: default
+  labels:
+    app: hosped-pagamento
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hosped-pagamento
+  template:
+    metadata:
+      labels:
+        app: hosped-pagamento
+    spec:
+      containers:
+        - name: hosped-pagamento
+          image: samuelgislon/hosped-pagamento:latest
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: hosped-pagamento-config
+            - secretRef:
+                name: hosped-pagamento-secret
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 10

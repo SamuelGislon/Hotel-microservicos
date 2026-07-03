@@ -640,3 +640,4 @@ Esperado em HOMOL: `404` para `/swagger-ui.html` e `/api-docs`.
 
 - Manter `SONAR_TOKEN`, `SONAR_HOST_URL`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*` configurados no GitHub para publicar os relatorios Sonar na branch `main`.
 - Manter credenciais reais fora do repositorio, usando GitHub Actions Secrets e Environment Variables do Render.
+

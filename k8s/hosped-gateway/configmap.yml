@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hosped-gateway-config
+  namespace: default
+data:
+  SERVER_PORT: "8080"
+  SPRING_APPLICATION_NAME: "api-gateway"
+  PAGAMENTO_SERVICE_URL: "http://hosped-pagamento-service:8083"
+  RESERVA_SERVICE_URL: "http://reserva-service-service:8081"
+  QUARTO_SERVICE_URL: "http://hosped-quarto-service:8084"
+  USERS_SERVICE_URL: "http://hosped-users-service:8085"
+  APP_ENVIRONMENT: "LOCAL"
+  JWT_ISSUER: "hosped"

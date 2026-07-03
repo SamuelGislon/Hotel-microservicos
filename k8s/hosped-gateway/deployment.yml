@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hosped-gateway
+  namespace: default
+  labels:
+    app: hosped-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hosped-gateway
+  template:
+    metadata:
+      labels:
+        app: hosped-gateway
+    spec:
+      containers:
+        - name: hosped-gateway
+          image: samuelgislon/hosped-gateway:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: hosped-gateway-config
+            - secretRef:
+                name: hosped-gateway-secret
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10

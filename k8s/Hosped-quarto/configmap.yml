@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hosped-quarto-config
+  namespace: default
+data:
+  SERVER_PORT: "8084"
+  SPRING_APPLICATION_NAME: "ms-quartos"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/hosped_quartos"
+  SPRING_DATASOURCE_USERNAME: "postgres"
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+  SPRING_RABBITMQ_HOST: "rabbitmq-service"
+  SPRING_RABBITMQ_PORT: "5672"
+  SPRING_RABBITMQ_USERNAME: "guest"
+  APP_ENVIRONMENT: "LOCAL"

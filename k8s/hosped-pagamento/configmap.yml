@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hosped-pagamento-config
+  namespace: default
+data:
+  SERVER_PORT: "8083"
+  SPRING_APPLICATION_NAME: "ms-pagamentos"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/hosped_pagamentos"
+  SPRING_DATASOURCE_USERNAME: "pagamentos_user"
+  SPRING_RABBITMQ_HOST: "rabbitmq-service"
+  SPRING_RABBITMQ_PORT: "5672"
+  SPRING_RABBITMQ_USERNAME: "guest"
+  MAIL_HOST: "smtp.gmail.com"
+  MAIL_PORT: "587"
+  MAIL_USERNAME: "hosped.hotel@gmail.com"
+  MAIL_DEBUG: "false"
+  PAGAMENTO_EXPIRACAO_HORAS: "8"
+  PAGAMENTO_EXPIRACAO_VERIFICACAO_MS: "60000"
+  PAGAMENTO_EMAIL_ENABLED: "false"
+  PAYMENT_CONFIRMATION_BASE_URL: "http://hosped-gateway-service:8080"
+  APP_ENVIRONMENT: "LOCAL"
+  SPRING_PROFILES_ACTIVE: "dev"

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hosped-quarto
+  namespace: default
+  labels:
+    app: hosped-quarto
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hosped-quarto
+  template:
+    metadata:
+      labels:
+        app: hosped-quarto
+    spec:
+      containers:
+        - name: hosped-quarto
+          image: samuelgislon/hosped-quarto:latest
+          ports:
+            - containerPort: 8084
+          envFrom:
+            - configMapRef:
+                name: hosped-quarto-config
+            - secretRef:
+                name: hosped-quarto-secret
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 60
+            periodSeconds: 10
