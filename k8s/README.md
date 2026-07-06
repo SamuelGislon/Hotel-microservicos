@@ -78,8 +78,8 @@ minikube addons enable ingress
 ### 3. Aplicar a infraestrutura
 
 ```bash
-kubectl apply -f k8s/infra/postgres-deployment.yml
-kubectl apply -f k8s/infra/rabbitmq-deployment.yml
+kubectl apply -f k8s/infra/postgres-users-quarto-pagamento-gateway-deployment.yml
+kubectl apply -f k8s/infra/rabbitmq-users-quarto-pagamento-gateway-deployment.yml
 ```
 
 Aguardar os pods ficarem prontos:

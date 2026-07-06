@@ -7,7 +7,7 @@ data:
   SERVER_PORT: "8085"
   SPRING_APPLICATION_NAME: "ms-users"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/hosped_users"
-  SPRING_DATASOURCE_USERNAME: "postgres"
+  SPRING_DATASOURCE_USERNAME: "users_user"
   SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
   APP_ENVIRONMENT: "LOCAL"
   JWT_ISSUER: "hosped"

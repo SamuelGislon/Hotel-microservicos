@@ -1,3 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-config
+  namespace: default
+data:
+  init.sh: |
+    #!/bin/bash
+    set -e
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+      CREATE DATABASE hosped_pagamentos;
+      CREATE USER pagamentos_user WITH PASSWORD 'pagamentos_pass';
+      GRANT ALL PRIVILEGES ON DATABASE hosped_pagamentos TO pagamentos_user;
+
+      CREATE DATABASE hosped_quartos;
+      CREATE USER quartos_user WITH PASSWORD 'quartos_pass';
+      GRANT ALL PRIVILEGES ON DATABASE hosped_quartos TO quartos_user;
+
+      CREATE DATABASE hosped_users;
+      CREATE USER users_user WITH PASSWORD 'users_pass';
+      GRANT ALL PRIVILEGES ON DATABASE hosped_users TO users_user;
+
+      CREATE DATABASE reserva_db;
+      CREATE USER reserva_user WITH PASSWORD 'reserva_pass';
+      GRANT ALL PRIVILEGES ON DATABASE reserva_db TO reserva_user;
+    EOSQL
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname="hosped_pagamentos" <<-EOSQL
+      GRANT ALL ON SCHEMA public TO pagamentos_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO pagamentos_user;
+    EOSQL
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname="hosped_quartos" <<-EOSQL
+      GRANT ALL ON SCHEMA public TO quartos_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO quartos_user;
+    EOSQL
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname="hosped_users" <<-EOSQL
+      GRANT ALL ON SCHEMA public TO users_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO users_user;
+    EOSQL
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname="reserva_db" <<-EOSQL
+      GRANT ALL ON SCHEMA public TO reserva_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO reserva_user;
+    EOSQL
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,18 +69,24 @@ spec:
           ports:
             - containerPort: 5432
           env:
-            - name: POSTGRES_DB
-              value: "hosped_pagamentos"
             - name: POSTGRES_USER
-              value: "pagamentos_user"
+              value: "postgres"
             - name: POSTGRES_PASSWORD
-              value: "pagamentos_pass"
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "postgres"
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: postgres-data
           emptyDir: {}
+        - name: init-script
+          configMap:
+            name: postgres-init-config
+            defaultMode: 0755
 ---
 apiVersion: v1
 kind: Service
