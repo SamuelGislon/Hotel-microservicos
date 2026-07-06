@@ -1,10 +1,7 @@
+[README-k8s-final.md](https://github.com/user-attachments/files/29709381/README-k8s-final.md)
 # Kubernetes - Deploy Local com Minikube
 
-## Objetivo
-
-Deploy dos microsserviços do sistema Hotel em um cluster Kubernetes local utilizando Minikube, com múltiplas réplicas, observabilidade e configuração via ConfigMap e Secret.
-
-## Pré-requisitos
+## Pre-requisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado e rodando
 - [Minikube](https://minikube.sigs.k8s.io/docs/start/) instalado
@@ -24,50 +21,42 @@ k8s/
 │   ├── service.yml
 │   └── ingress.yml
 ├── hosped-gateway/
-│   ├── configmap.yml
-│   ├── secret.yml
-│   ├── deployment.yml
-│   ├── service.yml
-│   └── ingress.yml
 ├── Hosped-quarto/
-│   ├── configmap.yml
-│   ├── secret.yml
-│   ├── deployment.yml
-│   ├── service.yml
-│   └── ingress.yml
 ├── Hosped-users/
-│   ├── configmap.yml
-│   ├── secret.yml
-│   ├── deployment.yml
-│   ├── service.yml
-│   └── ingress.yml
 └── reserva-service/
-    ├── configmap.yml
-    ├── secret.yml
-    ├── deployment.yml
-    ├── service.yml
-    └── ingress.yml
 ```
 
-## Descrição dos manifests
+Cada ms possui seus proprios arquivos de manifest. A pasta `infra/` contem PostgreSQL e RabbitMQ compartilhados por todos os ms.
 
-Cada microsserviço possui seus próprios arquivos de configuração:
+## Descricao dos manifests
 
-- **ConfigMap** — variáveis de ambiente não sensíveis (URLs, portas, nomes de serviços)
-- **Secret** — dados sensíveis (senhas de banco, tokens JWT, credenciais)
-- **Deployment** — define como o ms é executado: imagem Docker, número de réplicas (mínimo 2), health checks
-- **Service** — expõe o ms internamente no cluster via ClusterIP
-- **Ingress** — expõe o ms externamente via domínio local (ex: `pagamento.local`)
+**ConfigMap** — variaveis de ambiente nao sensiveis como URLs dos servicos internos, portas e nomes. No cluster Kubernetes os servicos se comunicam pelos nomes dos Services (ex: `hosped-pagamento-service:8083`) em vez de `localhost`.
 
-A pasta `infra/` contém os deployments compartilhados de infraestrutura (PostgreSQL e RabbitMQ) utilizados por todos os microsserviços.
+**Secret** — dados sensiveis como senhas de banco de dados e tokens JWT. Os valores sao injetados nos containers em tempo de execucao e nunca ficam expostos no codigo.
+
+**Deployment** — define como o ms roda: qual imagem Docker usar, numero de replicas (2 por ms) e health checks via `/actuator/health`. O Kubernetes monitora os pods e reinicia automaticamente se ficarem fora do ar.
+
+**Service** — cria um endereco interno fixo do tipo `ClusterIP` para os ms se comunicarem dentro do cluster. Sem o Service, os pods nao teriam endereco estavel pois o IP muda a cada reinicio.
+
+**Ingress** — expoe cada ms externamente via dominio local usando nginx:
+
+```
+pagamento.local → hosped-pagamento-service:8083
+gateway.local   → hosped-gateway-service:8080
+quarto.local    → hosped-quarto-service:8084
+users.local     → hosped-users-service:8085
+reserva.local   → reserva-service-service:8081
+```
 
 ## Como executar
 
 ### 1. Iniciar o Minikube
 
 ```bash
-minikube start
+minikube start --memory=6144 --cpus=4
 ```
+
+Iniciado com 6GB de RAM e 4 CPUs para suportar todos os pods simultaneamente.
 
 ### 2. Habilitar o Ingress
 
@@ -78,17 +67,16 @@ minikube addons enable ingress
 ### 3. Aplicar a infraestrutura
 
 ```bash
-kubectl apply -f k8s/infra/postgres-users-quarto-pagamento-gateway-deployment.yml
-kubectl apply -f k8s/infra/rabbitmq-users-quarto-pagamento-gateway-deployment.yml
+kubectl apply -f k8s/infra/
 ```
 
-Aguardar os pods ficarem prontos:
+Aguardar PostgreSQL e RabbitMQ ficarem prontos:
 
 ```bash
 kubectl get pods -w
 ```
 
-### 4. Aplicar os microsserviços
+### 4. Aplicar os microsservicos
 
 ```bash
 kubectl apply -f k8s/hosped-pagamento/
@@ -98,27 +86,21 @@ kubectl apply -f k8s/Hosped-users/
 kubectl apply -f k8s/reserva-service/
 ```
 
-### 5. Verificar os pods
+### 5. Configurar o arquivo hosts (Windows)
 
-```bash
-kubectl get pods
+Abrir o Bloco de Notas como administrador e adicionar no final do arquivo `C:\Windows\System32\drivers\etc\hosts`:
+
+```
+127.0.0.1 pagamento.local
+127.0.0.1 gateway.local
+127.0.0.1 quarto.local
+127.0.0.1 users.local
+127.0.0.1 reserva.local
 ```
 
-Todos os pods devem estar com status `Running` e `1/1` ou `2/2`.
+Este passo simula um servidor DNS local — faz com que o sistema operacional resolva esses dominios para `127.0.0.1` onde o Minikube tunnel estara ouvindo. Em producao esses dominios seriam resolvidos por um servidor DNS real apontando para o IP do cluster.
 
-### 6. Configurar o arquivo hosts (Windows)
-
-Abrir PowerShell como administrador e executar:
-
-```powershell
-Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 pagamento.local"
-Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 gateway.local"
-Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 quarto.local"
-Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 users.local"
-Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 reserva.local"
-```
-
-### 7. Iniciar o tunnel
+### 6. Iniciar o tunnel
 
 Em um terminal separado, manter rodando:
 
@@ -126,7 +108,21 @@ Em um terminal separado, manter rodando:
 minikube tunnel
 ```
 
-### 8. Testar os serviços
+O tunnel cria uma ponte entre a maquina e o cluster Kubernetes permitindo que o trafego do Ingress seja roteado corretamente:
+
+```
+navegador → dominio.local → 127.0.0.1 → tunnel → Ingress → Service → Pod
+```
+
+### 7. Verificar os pods
+
+```bash
+kubectl get pods
+```
+
+Todos os pods devem estar com status `1/1 Running`.
+
+### 8. Testar os servicos
 
 ```
 http://pagamento.local/actuator/health
@@ -136,40 +132,22 @@ http://users.local/actuator/health
 http://reserva.local/actuator/health
 ```
 
-## Replicação
+## Replicacao
 
-Cada microsserviço é executado com **2 réplicas** conforme definido nos Deployments:
+Cada microsservico e executado com 2 replicas conforme definido nos Deployments:
 
 ```yaml
 spec:
   replicas: 2
 ```
 
-Para verificar os pods em execução:
+Para verificar os pods em execucao:
 
 ```bash
 kubectl get pods
 ```
 
-## Configuração
-
-### ConfigMap
-Armazena variáveis de ambiente não sensíveis como URLs dos serviços internos, portas e nomes de aplicação. No cluster Kubernetes, os serviços se comunicam pelos nomes dos Services (ex: `hosped-pagamento-service:8083`) em vez de `localhost`.
-
-### Secret
-Armazena dados sensíveis como senhas de banco de dados, tokens JWT e credenciais de e-mail. Os valores são injetados nos containers em tempo de execução.
-
-## Observabilidade
-
-Cada microsserviço expõe métricas via:
-
-```
-http://<servico>.local/actuator/prometheus
-```
-
-O Prometheus e Grafana podem ser configurados dentro do cluster apontando para esses endpoints.
-
-## Comandos úteis
+## Comandos uteis
 
 ```bash
 # Ver todos os pods
@@ -180,12 +158,6 @@ kubectl logs <nome-do-pod>
 
 # Ver detalhes de um pod
 kubectl describe pod <nome-do-pod>
-
-# Ver todos os services
-kubectl get services
-
-# Ver todos os ingresses
-kubectl get ingress
 
 # Reiniciar um deployment
 kubectl rollout restart deployment/<nome-do-deployment>
