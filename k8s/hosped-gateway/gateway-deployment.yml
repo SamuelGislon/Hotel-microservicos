@@ -18,6 +18,7 @@ spec:
       containers:
         - name: hosped-gateway
           image: samuelgislon/hosped-gateway:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           envFrom:

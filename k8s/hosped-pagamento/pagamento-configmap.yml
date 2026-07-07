@@ -13,7 +13,6 @@ data:
   SPRING_RABBITMQ_USERNAME: "guest"
   MAIL_HOST: "smtp.gmail.com"
   MAIL_PORT: "587"
-  MAIL_USERNAME: "hosped.hotel@gmail.com"
   MAIL_DEBUG: "false"
   PAGAMENTO_EXPIRACAO_HORAS: "8"
   PAGAMENTO_EXPIRACAO_VERIFICACAO_MS: "60000"

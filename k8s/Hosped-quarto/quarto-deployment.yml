@@ -18,6 +18,7 @@ spec:
       containers:
         - name: hosped-quarto
           image: samuelgislon/hosped-quarto:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8084
           envFrom:

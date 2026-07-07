@@ -49,6 +49,26 @@ URLs locais principais:
 
 Credenciais padrao do Grafana local: `admin` / `admin`, alteraveis por `GRAFANA_ADMIN_USER` e `GRAFANA_ADMIN_PASSWORD`.
 
+## Kubernetes com Minikube - TP3
+
+Os manifests Kubernetes ficam em `k8s/` e cobrem os cinco microsservicos, infraestrutura local (`PostgreSQL` e `RabbitMQ`) e observabilidade dentro do cluster (`Prometheus` e `Grafana`).
+
+Para executar no Minikube:
+
+```bash
+minikube start --memory=4096 --cpus=4
+minikube addons enable ingress
+kubectl apply -f k8s/infra/
+kubectl apply -f k8s/Hosped-users/
+kubectl apply -f k8s/Hosped-quarto/
+kubectl apply -f k8s/hosped-pagamento/
+kubectl apply -f k8s/reserva-service/
+kubectl apply -f k8s/hosped-gateway/
+kubectl apply -f k8s/observability/
+```
+
+As instrucoes completas de build local das imagens, configuracao de Ingress, acesso aos servicos, Prometheus/Grafana e comandos de validacao estao em [`k8s/README.md`](k8s/README.md).
+
 ## Ambientes DEV e HOMOL
 
 Os ambientes sao controlados por `SPRING_PROFILES_ACTIVE`.
@@ -640,4 +660,3 @@ Esperado em HOMOL: `404` para `/swagger-ui.html` e `/api-docs`.
 
 - Manter `SONAR_TOKEN`, `SONAR_HOST_URL`, `SONAR_ORGANIZATION` e `SONAR_PROJECT_KEY_*` configurados no GitHub para publicar os relatorios Sonar na branch `main`.
 - Manter credenciais reais fora do repositorio, usando GitHub Actions Secrets e Environment Variables do Render.
-

@@ -18,6 +18,7 @@ spec:
       containers:
         - name: hosped-pagamento
           image: samuelgislon/hosped-pagamento:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
           envFrom:

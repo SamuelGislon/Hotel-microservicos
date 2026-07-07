@@ -15,7 +15,7 @@ on:
       - develop
     paths:
       - "reserva-service/**"
-      - ".github/workflows/reserva-users-quarto-pagamento-gateway-service.yml"
+      - ".github/workflows/reserva-service.yml"
       - ".github/workflows/_java-service-ci-cd.yml"
 
 jobs:
