@@ -14,7 +14,7 @@ services:
       - hosped-network
 
   reserva-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: hosped-reserva-db
     environment:
       POSTGRES_DB: reserva_db
@@ -31,7 +31,7 @@ services:
       - hosped-network
 
   quarto-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: hosped-quarto-db
     environment:
       POSTGRES_DB: hosped_quartos
@@ -48,7 +48,7 @@ services:
       - hosped-network
 
   users-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: hosped-users-db
     environment:
       POSTGRES_DB: hosped_users
@@ -65,7 +65,7 @@ services:
       - hosped-network
 
   pagamento-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: hosped-pagamento-db
     environment:
       POSTGRES_DB: hosped_pagamentos
